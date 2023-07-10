@@ -1,0 +1,4 @@
+SUCCESS = "00"
+EMPTY = "01"
+CONFLICT = "02"
+
