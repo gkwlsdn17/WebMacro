@@ -7,6 +7,7 @@ import cv2
 from selenium import webdriver
 import time
 import CODE
+import copy
 
 from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.support.wait import WebDriverWait
@@ -113,64 +114,50 @@ def image_check(driver):
     driver.find_element_by_id('label-for-captcha').send_keys(result[0])
     driver.find_element_by_id('btnComplete').click()
 
-def select_seat(driver, config_special_area, bool_special_area):
-    grade_summary = driver.find_elements_by_css_selector("#divGradeSummary > tr")
+def select_seat(driver, config_grade_area, config_special_area, bool_special_area):
+    grade_summary = driver.find_elements_by_css_selector('#divGradeSummary > tr')
+    print(f'len(grade_summary):{len(grade_summary)}')
     if len(grade_summary) != 0:
-        idx = 0
-        for tr in grade_summary:
-            idx += 1
-            print_debug(tr.text)
-            if idx%2 == 1:
-                tr.click()
-                time.sleep(0.1)
-            else:
-                area_list = tr.find_elements_by_css_selector('td > div > ul > li')
-                print_debug(f'len(area_list):{len(area_list)}')
-                if bool_special_area != "Y" or len(config_special_area) == 0:
-                    config_special_area.append("")
-                print_debug(f'config_special_area:{config_special_area}')
-                while len(config_special_area) > 0:
-                    res = select_box(driver, area_list, config_special_area[0])
-                    print_debug(f"RESULT: {res}")
-                    if res == CODE.EMPTY:
-                        # tmp = config_special_area[0]
-                        config_special_area.pop(0)
-                        # config_special_area.append(tmp)
-                        continue
-                    elif res == CODE.CONFLICT:
-                        return CODE.CONFLICT
-                    else:
-                        return CODE.SUCCESS
-        return res
-        # grade_summary[0].click()
-        # time.sleep(0.1)
+        if bool_special_area == "Y" and len(config_grade_area) > 0:
+            # 짝수 index는 grade고 홀수 index는 실제 좌석있는 부분
+            grade_index_list = [i for config_item in config_grade_area for i, grade in enumerate(grade_summary) if config_item in grade.text and i%2 == 0]
+            if len(grade_index_list) == 0:
+                return CODE.AREA_ERROR
+            print_debug("---------------------------------------")
+            for g in grade_index_list:
+                print_debug(grade_summary[g].text)
+            print_debug("---------------------------------------")
+        else:
+            grade_index_list = [i for i, grade in enumerate(grade_summary) if i%2 == 0]
 
-        # box_list_area = driver.find_elements_by_css_selector("#divGradeSummary > tr.box_list_area")
-        # print_debug(f'box_list_area:{len(box_list_area)}')
-        # check = False
-        # if len(box_list_area) != 0:
-        #     for tb in box_list_area:
-        #         area_list = tb.find_elements_by_css_selector('td > div > ul > li')
-        #         print_debug(f'len(area_list):{len(area_list)}')
-        #         if bool_special_area != "Y" or len(config_special_area) == 0:
-        #             config_special_area.append("")
-        #         print_debug(f'config_special_area:{config_special_area}')
-        #         while len(config_special_area) > 0:
-        #             res = select_box(driver, area_list, config_special_area[0])
-        #             print_debug(f"RESULT: {res}")
-        #             if res == CODE.EMPTY:
-        #                 # tmp = config_special_area[0]
-        #                 config_special_area.pop(0)
-        #                 # config_special_area.append(tmp)
-        #                 continue
-        #             elif res == CODE.CONFLICT:
-        #                 return CODE.CONFLICT
-        #             else:
-        #                 return CODE.SUCCESS
-        #     return CODE.EMPTY
-        # else:
-        #     res = select_rect(driver)
-        #     return res
+        for idx in grade_index_list:
+            tmp_special_area = copy.deepcopy(config_special_area)
+            tr = grade_summary[idx]
+            print_debug(tr.text)
+            tr.click()
+            time.sleep(0.1)
+            box_list_area = grade_summary[idx+1]
+            area_list = box_list_area.find_elements_by_css_selector('td > div > ul > li')
+            print_debug(f'len(area_list):{len(area_list)}')
+            if len(tmp_special_area) == 0:
+                tmp_special_area.append("")
+            print_debug(f'config_special_area:{tmp_special_area}')
+            while len(tmp_special_area) > 0:
+                if len(tmp_special_area) > 1 or tmp_special_area[0] != "":
+                    new_area_list = [area for area in area_list if tmp_special_area[0] in area.text]
+                    print_debug(f'len(new area_list):{len(new_area_list)} , tmp_special_area[0]:{tmp_special_area[0]}')
+                    res = select_box(driver, new_area_list, tmp_special_area[0])
+                else:
+                    res = select_box(driver, area_list, tmp_special_area[0])
+                print_debug(f"RESULT: {res}")
+                if res == CODE.EMPTY:
+                    tmp_special_area.pop(0)
+                    continue
+                elif res == CODE.CONFLICT:
+                    return CODE.CONFLICT
+                else:
+                    return CODE.SUCCESS
+        return res
     else:
         print_debug("grade 없음")
         res = select_rect(driver)
@@ -180,7 +167,7 @@ def select_box(driver, li_list, choice=""):
     for i in li_list:
         print_debug(f'area = {i.text}')
         area = i.find_element_by_class_name('area_tit').text.strip()
-        print_debug(area)
+        print_debug(area + ' choice: ' + choice)
         if choice == "":
             i.click()
             res = select_rect(driver)

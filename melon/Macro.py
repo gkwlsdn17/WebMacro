@@ -16,7 +16,7 @@ import traceback
 class Macro():
     def __init__(self):
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver") #v110
-        self.driver = webdriver.Chrome("./chromedriver_win32_v114/chromedriver")
+        self.driver = webdriver.Chrome("./chromedriver-win32/chromedriver")
 
         self.wait = WebDriverWait(self.driver, 600)
         self.config = configparser.ConfigParser()
@@ -26,6 +26,7 @@ class Macro():
         self.__pw = self.config['loginInfo']['pw']
         self.__prodId = self.config['bookInfo']['prodId']
         self.__seatOrder = self.config['bookInfo']['order']
+        self.__seatGrade = self.config['bookInfo']['grade']
         self.__start_year = int(self.config['program']['year'])
         self.__start_month = int(self.config['program']['month'])
         self.__start_day = int(self.config['program']['day'])
@@ -76,7 +77,17 @@ class Macro():
                 print(f'config order change success. {self.__seatOrder}')
             elif self.key == 'order_cancel':
                 self.__seatOrder = ''
-                self.__special_area = 'N'
+                # self.__special_area = 'N'
+            elif self.key == 'grade':
+                print(f'please enter grade ex)S석,A석,B석 :')
+                change_grade = input()
+                self.__seatGrade = change_grade
+                self.__special_area = 'Y'
+                print(f'config grade change success. {self.__seatGrade}')
+            elif self.key == 'grade_cancel':
+                self.__seatGrade = ''
+                # self.__special_area = 'N'
+                print(f'grade cancel!!')
 
         print("key_interrupt exit.")
 
@@ -148,17 +159,24 @@ class Macro():
 
                 while self.stop == False and self.part == "booking":
                     config_special_area = []
+                    config_grade_area = []
                     if self.__seatOrder != "" and self.__special_area == "Y":
                         config_special_area = self.__seatOrder.split(",")
-                    function.print_debug(config_special_area)
+                    function.print_debug(f'config_special_area setting:{config_special_area}')
+                    if self.__seatGrade != "" and self.__special_area == "Y":
+                        config_grade_area = self.__seatGrade.split(",")
+                    function.print_debug(f'config_grade_area setting:{config_grade_area}')
 
-                    res = function.select_seat(self.driver, config_special_area, self.__special_area)
+                    res = function.select_seat(self.driver, config_grade_area, config_special_area, self.__special_area)
+                    function.print_debug(f'Macro booking return value:{res}')
                     if res == CODE.SUCCESS:
                         self.part = "catch"
                         self.jump_count_update()
                         break
                     elif res == CODE.CONFLICT:
                         self.jump_count_update()
+                    elif res == CODE.AREA_ERROR:
+                        self.__special_area = "N"
 
                     self.driver.find_element_by_id('btnReloadSchedule').click()
                     self.wait.until(EC.presence_of_element_located((By.ID, "ez_canvas")))
