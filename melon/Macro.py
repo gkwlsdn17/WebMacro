@@ -18,7 +18,7 @@ class Macro():
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver") #v110
         self.driver = webdriver.Chrome("./chromedriver-win32/chromedriver")
 
-        self.wait = WebDriverWait(self.driver, 600)
+        self.wait = WebDriverWait(self.driver, 180)
         self.config = configparser.ConfigParser()
         self.config.read('config.ini', encoding='utf-8')
 
@@ -127,13 +127,22 @@ class Macro():
 
                 if self.stop == False and self.part == "click_book":
                     # 날짜선택후 티켓창 오픈
-                    function.select_date(self.driver, self.config)
+                    cnt = 0
+                    ret = function.select_date(self.driver, self.config)
+                    if ret == False:
+                        while cnt < 3:
+                            cnt += 1
+                            ret = function.select_date(self.driver, self.config)
+                            if ret == True:
+                                break
                     self.driver.switch_to.window(self.driver.window_handles[1])
                     self.part = "certification"
 
                 if self.stop == False and self.part == "certification":
                     # 보안문자인증
                     if self.__auto_certification == "N":
+                        label = self.driver.find_element_by_id('label-for-captcha')
+                        self.driver.execute_script("arguments[0].focus();", label)
                         self.wait.until(EC.invisibility_of_element_located((By.ID, "certification")))
                     else:
                         function.certification(self.driver)

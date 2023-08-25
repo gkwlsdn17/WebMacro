@@ -46,6 +46,7 @@ def check_alert(driver):
         print("Alert is not present")
 
 def select_date(driver, config):
+    success = True
     date_list = driver.find_elements_by_xpath('//*[@id="list_date"]/li')
     for li in date_list:
         print(li.get_attribute('data-perfday'))
@@ -60,20 +61,24 @@ def select_date(driver, config):
                 btn.click()
                 break
             
+    try:
+        time.sleep(0.3)
+        time_list = driver.find_elements_by_xpath('//*[@id="list_time"]/li')
+        for li in time_list:
+            print(li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" "))
+            times = li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" ")
+            book_time = times[0][0:2] + times[1][0:2]
+            if config['bookInfo']['bookTime'] == book_time:
+                print("time ok")
+                li.click()
+                break
 
-    time.sleep(0.3)
-    time_list = driver.find_elements_by_xpath('//*[@id="list_time"]/li')
-    for li in time_list:
-        print(li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" "))
-        times = li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" ")
-        book_time = times[0][0:2] + times[1][0:2]
-        if config['bookInfo']['bookTime'] == book_time:
-            print("time ok")
-            li.click()
-            break
-
-    driver.find_element_by_xpath('//*[@id="ticketReservation_Btn"]').click()
-    time.sleep(1)
+        driver.find_element_by_xpath('//*[@id="ticketReservation_Btn"]').click()
+        time.sleep(1)
+    except Exception as e:
+        print(f"select_date part 2 error: {e}")
+        success = False
+    return success
 
 def certification(driver):
     i = 0
