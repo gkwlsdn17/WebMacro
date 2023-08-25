@@ -120,7 +120,7 @@ class Macro():
                     self.part = "popup_check"
 
                 if self.stop == False and self.part == "popup_check":
-                    self.wait.until(EC.presence_of_element_located((By.ID, 'list_date')))
+                    WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.ID, 'list_date')))
                     
                     function.check_alert(self.driver)
                     self.part = "click_book"
@@ -141,8 +141,13 @@ class Macro():
                 if self.stop == False and self.part == "certification":
                     # 보안문자인증
                     if self.__auto_certification == "N":
-                        label = self.driver.find_element_by_id('label-for-captcha')
-                        self.driver.execute_script("arguments[0].focus();", label)
+                        try:
+                            label = self.driver.find_element_by_id('label-for-captcha')
+                            self.driver.execute_script("arguments[0].focus();", label)
+                        except Exception as e:
+                            # 인증이 없는케이스 고려해서 반복안하고 바로 넘어감
+                            print(f"certification box focus error:{e}")
+                                
                         self.wait.until(EC.invisibility_of_element_located((By.ID, "certification")))
                     else:
                         function.certification(self.driver)
