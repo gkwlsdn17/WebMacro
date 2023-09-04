@@ -43,6 +43,7 @@ class Macro():
         self.end = False
         self.stop = False
         self.part = "login"
+        self.skip_select_date = False
 
         self.main_thread = threading.Thread(target=self.run)
         self.main_thread.start()
@@ -88,6 +89,12 @@ class Macro():
                 self.__seatGrade = ''
                 # self.__special_area = 'N'
                 print(f'grade cancel!!')
+            elif self.key == 'skip_select_date':
+                self.skip_select_date = True
+                print('skip_select_date set ok.')
+            elif self.key == 'skip_select_date_cancel':
+                self.skip_select_date = False
+                print('skip_select_date cancel set ok.')
 
         print("key_interrupt exit.")
 
@@ -126,15 +133,16 @@ class Macro():
                     self.part = "click_book"
 
                 if self.stop == False and self.part == "click_book":
-                    # 날짜선택후 티켓창 오픈
-                    cnt = 0
-                    ret = function.select_date(self.driver, self.config)
-                    if ret == False:
-                        while cnt < 3:
-                            cnt += 1
-                            ret = function.select_date(self.driver, self.config)
-                            if ret == True:
-                                break
+                    if self.skip_select_date == False:
+                        # 날짜선택후 티켓창 오픈
+                        cnt = 0
+                        ret = function.select_date(self.driver, self.config)
+                        if ret == False:
+                            while cnt < 3:
+                                cnt += 1
+                                ret = function.select_date(self.driver, self.config)
+                                if ret == True:
+                                    break
                     self.driver.switch_to.window(self.driver.window_handles[1])
                     self.part = "certification"
 
