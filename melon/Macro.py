@@ -12,6 +12,7 @@ import function
 import configparser
 import pause
 import traceback
+import os
 
 class Macro():
     def __init__(self):
@@ -45,11 +46,18 @@ class Macro():
         self.part = "login"
         self.skip_select_date = False
 
+        self.img_folder_path = './images'
+        self.make_image_save_folder()
+
         self.main_thread = threading.Thread(target=self.run)
         self.main_thread.start()
 
         self.key_reading = threading.Thread(target=self.key_interrupt)
         self.key_reading.start()
+
+    def make_image_save_folder(self):
+        if not os.path.exists(self.img_folder_path):
+            os.makedirs(self.img_folder_path)
 
     def key_interrupt(self):
         while not self.end:
@@ -159,7 +167,7 @@ class Macro():
                                 
                         self.wait.until(EC.invisibility_of_element_located((By.ID, "certification")))
                     else:
-                        function.certification(self.driver)
+                        function.certification(self.driver, self.img_folder_path)
                     self.part = "seat_frame_move"
 
                 if self.stop == False and self.part == "seat_frame_move":

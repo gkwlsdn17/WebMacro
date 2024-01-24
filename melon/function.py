@@ -81,7 +81,7 @@ def select_date(driver, config):
         success = False
     return success
 
-def certification(driver):
+def certification(driver, img_folder_path):
     i = 0
     try:
         while driver.find_element(By.ID,'certification').is_displayed() == 1:
@@ -89,7 +89,7 @@ def certification(driver):
             print(f"check: {i}")
             if i > 10:
                 break
-            image_check(driver)
+            image_check(driver, img_folder_path)
             if driver.find_element(By.ID,'certification').is_displayed() == 1:
                 driver.find_element(By.ID,'btnReload').click()
                 driver.find_element(By.ID,'label-for-captcha').clear()
@@ -98,12 +98,12 @@ def certification(driver):
     except:
         print("no certification")
 
-def image_check(driver):
+def image_check(driver, img_folder_path):
     capchaImg = driver.find_element(By.ID,'captchaImg')
 
     img_src = capchaImg.get_attribute('src')
     file_name = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    img_file_path = f'./{file_name}.png'
+    img_file_path = f'./{img_folder_path}/{file_name}.png'
     urlretrieve(img_src, img_file_path)
 
     foreground = Image.open(img_file_path)
@@ -114,7 +114,7 @@ def image_check(driver):
     # time.sleep(0.1)
     img = cv2.imread('composite_img.png')
 
-    reader = easyocr.Reader(['en'], gpu=False)
+    reader = easyocr.Reader(['en'], gpu=True)
     result = reader.readtext(img, detail=0)
     print(result[0])
     driver.find_element(By.ID,'label-for-captcha').send_keys(result[0])
