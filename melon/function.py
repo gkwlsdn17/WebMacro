@@ -22,17 +22,18 @@ seat_jump_special_repeat_count = 0
 def login(driver,id, pw):
 
     driver.get("https://member.melon.com/muid/family/ticket/login/web/login_informM.htm")
-    driver.find_element_by_id('id').send_keys(id)
-    driver.find_element_by_id('pwd').send_keys(pw)
+    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id')))
+    driver.find_element(By.ID,'id').send_keys(id)
+    driver.find_element(By.ID,'pwd').send_keys(pw)
     time.sleep(0.5)
-    driver.find_element_by_id('btnLogin').click()
+    driver.find_element(By.ID,'btnLogin').click()
 
     time.sleep(0.3)
 
 def check_alert(driver):
     try:
-        if driver.find_element_by_id('noticeAlert').is_displayed() == 1:
-            driver.find_element_by_id('noticeAlert_layerpopup_close').click()
+        if driver.find_element(By.ID,'noticeAlert').is_displayed() == 1:
+            driver.find_element(By.ID,'noticeAlert_layerpopup_close').click()
     except Exception as e:
         print(e)
 
@@ -47,7 +48,7 @@ def check_alert(driver):
 
 def select_date(driver, config):
     success = True
-    date_list = driver.find_elements_by_xpath('//*[@id="list_date"]/li')
+    date_list = driver.find_elements(By.XPATH,'//*[@id="list_date"]/li')
     for li in date_list:
         print(li.get_attribute('data-perfday'))
         if config['bookInfo']['bookDate'] == li.get_attribute('data-perfday'):
@@ -57,23 +58,23 @@ def select_date(driver, config):
                 break
             except Exception as e:
                 print(f'select_date list_date/li error:{e}')
-                btn = driver.find_element_by_css_selector(f'button.ticketCalendarBtn[data-perfday="{config["bookInfo"]["bookDate"]}"]')
+                btn = driver.find_element(By.CSS_SELECTOR, f'button.ticketCalendarBtn[data-perfday="{config["bookInfo"]["bookDate"]}"]')
                 btn.click()
                 break
             
     try:
         time.sleep(0.3)
-        time_list = driver.find_elements_by_xpath('//*[@id="list_time"]/li')
+        time_list = driver.find_elements(By.XPATH,'//*[@id="list_time"]/li')
         for li in time_list:
-            print(li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" "))
-            times = li.find_element_by_css_selector('button > span').get_attribute('innerHTML').split(" ")
+            print(li.find_element(By.CSS_SELECTOR,'button > span').get_attribute('innerHTML').split(" "))
+            times = li.find_element(By.CSS_SELECTOR,'button > span').get_attribute('innerHTML').split(" ")
             book_time = times[0][0:2] + times[1][0:2]
             if config['bookInfo']['bookTime'] == book_time:
                 print("time ok")
                 li.click()
                 break
 
-        driver.find_element_by_xpath('//*[@id="ticketReservation_Btn"]').click()
+        driver.find_element(By.XPATH, '//*[@id="ticketReservation_Btn"]').click()
         time.sleep(1)
     except Exception as e:
         print(f"select_date part 2 error: {e}")
@@ -83,22 +84,22 @@ def select_date(driver, config):
 def certification(driver):
     i = 0
     try:
-        while driver.find_element_by_id('certification').is_displayed() == 1:
+        while driver.find_element(By.ID,'certification').is_displayed() == 1:
             i += 1
             print(f"check: {i}")
             if i > 10:
                 break
             image_check(driver)
-            if driver.find_element_by_id('certification').is_displayed() == 1:
-                driver.find_element_by_id('btnReload').click()
-                driver.find_element_by_id('label-for-captcha').clear()
+            if driver.find_element(By.ID,'certification').is_displayed() == 1:
+                driver.find_element(By.ID,'btnReload').click()
+                driver.find_element(By.ID,'label-for-captcha').clear()
                 # time.sleep(0.1)
-        print(driver.find_element_by_id('certification').is_displayed())
+        print(driver.find_element(By.ID,'certification').is_displayed())
     except:
         print("no certification")
 
 def image_check(driver):
-    capchaImg = driver.find_element_by_id('captchaImg')
+    capchaImg = driver.find_element(By.ID,'captchaImg')
 
     img_src = capchaImg.get_attribute('src')
     file_name = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
@@ -116,11 +117,11 @@ def image_check(driver):
     reader = easyocr.Reader(['en'], gpu=False)
     result = reader.readtext(img, detail=0)
     print(result[0])
-    driver.find_element_by_id('label-for-captcha').send_keys(result[0])
-    driver.find_element_by_id('btnComplete').click()
+    driver.find_element(By.ID,'label-for-captcha').send_keys(result[0])
+    driver.find_element(By.ID,'btnComplete').click()
 
 def select_seat(driver, config_grade_area, config_special_area, bool_special_area):
-    grade_summary = driver.find_elements_by_css_selector('#divGradeSummary > tr')
+    grade_summary = driver.find_elements(By.CSS_SELECTOR,'#divGradeSummary > tr')
     print(f'len(grade_summary):{len(grade_summary)}')
     if len(grade_summary) != 0:
         if bool_special_area == "Y" and len(config_grade_area) > 0:
@@ -142,7 +143,7 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
             tr.click()
             time.sleep(0.1)
             box_list_area = grade_summary[idx+1]
-            area_list = box_list_area.find_elements_by_css_selector('td > div > ul > li')
+            area_list = box_list_area.find_element(By.CSS_SELECTOR,'td > div > ul > li')
             print_debug(f'len(area_list):{len(area_list)}')
             if len(tmp_special_area) == 0:
                 tmp_special_area.append("")
@@ -171,7 +172,7 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
 def select_box(driver, li_list, choice=""):
     for i in li_list:
         print_debug(f'area = {i.text}')
-        area = i.find_element_by_class_name('area_tit').text.strip()
+        area = i.find_elements(By.CLASS_NAME,'area_tit').text.strip()
         print_debug(area + ' choice: ' + choice)
         if choice == "":
             i.click()
@@ -205,7 +206,7 @@ def select_rect(driver):
     """)
 
 
-    # seats = driver.find_elements_by_css_selector('#ez_canvas > svg > rect:not([fill="#DDDDDD"]):not([fill="none"])')
+    # seats = driver.find_element(By.CSS_SELECTOR,'#ez_canvas > svg > rect:not([fill="#DDDDDD"]):not([fill="none"])')
     print_debug(f"len(seats): {len(seats)}")
 
     if len(seats) == 0:
@@ -225,7 +226,7 @@ def select_rect(driver):
         else:
             print(seats[0].get_attribute("x"), seats[0].get_attribute("y"))
             seats[0].click()
-        driver.find_element_by_id('nextTicketSelection').click()
+        driver.find_element(By.ID,'nextTicketSelection').click()
     except Exception as e:
         print(f"seat read error: {e}")
         return CODE.CONFLICT

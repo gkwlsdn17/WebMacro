@@ -16,7 +16,7 @@ import traceback
 class Macro():
     def __init__(self):
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver") #v110
-        self.driver = webdriver.Chrome("./chromedriver-win32/chromedriver")
+        self.driver = webdriver.Chrome()
 
         self.wait = WebDriverWait(self.driver, 180)
         self.config = configparser.ConfigParser()
@@ -143,6 +143,7 @@ class Macro():
                                 ret = function.select_date(self.driver, self.config)
                                 if ret == True:
                                     break
+                    WebDriverWait(self.driver, 10).until(EC.number_of_windows_to_be(2))
                     self.driver.switch_to.window(self.driver.window_handles[1])
                     self.part = "certification"
 
@@ -163,7 +164,7 @@ class Macro():
 
                 if self.stop == False and self.part == "seat_frame_move":
                     # 좌석 선택
-                    iframe = self.driver.find_element_by_tag_name('iframe')
+                    iframe = self.driver.find_element(By.TAG_NAME, 'iframe')
                     self.driver.switch_to.frame(iframe)
                     self.part = "set_seat_jump"
 
