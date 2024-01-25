@@ -48,7 +48,9 @@ def check_alert(driver):
 
 def select_date(driver, config):
     success = True
+    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'list_date')))
     date_list = driver.find_elements(By.XPATH,'//*[@id="list_date"]/li')
+    print(f'date_list: {date_list}')
     for li in date_list:
         print(li.get_attribute('data-perfday'))
         if config['bookInfo']['bookDate'] == li.get_attribute('data-perfday'):
@@ -143,7 +145,7 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
             tr.click()
             time.sleep(0.1)
             box_list_area = grade_summary[idx+1]
-            area_list = box_list_area.find_element(By.CSS_SELECTOR,'td > div > ul > li')
+            area_list = box_list_area.find_elements(By.CSS_SELECTOR,'td > div > ul > li')
             print_debug(f'len(area_list):{len(area_list)}')
             if len(tmp_special_area) == 0:
                 tmp_special_area.append("")
@@ -172,7 +174,7 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
 def select_box(driver, li_list, choice=""):
     for i in li_list:
         print_debug(f'area = {i.text}')
-        area = i.find_elements(By.CLASS_NAME,'area_tit').text.strip()
+        area = i.find_element(By.CLASS_NAME,'area_tit').text.strip()
         print_debug(area + ' choice: ' + choice)
         if choice == "":
             i.click()

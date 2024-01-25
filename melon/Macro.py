@@ -146,7 +146,7 @@ class Macro():
                     self.part = "click_book"
 
                 if self.stop == False and self.part == "click_book":
-                    if self.__skip_date_click == False:
+                    if self.__skip_date_click == 'N':
                         # 날짜선택후 티켓창 오픈
                         cnt = 0
                         ret = function.select_date(self.driver, self.config)
