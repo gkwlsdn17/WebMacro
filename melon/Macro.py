@@ -40,6 +40,7 @@ class Macro():
         self.__seat_jump_count = int(self.config['function']['seat_jump_count'])
         self.__seat_jump_special_repeat = self.config['function']['seat_jump_special_repeat']
         self.__seat_jump_special_repeat_count = int(self.config['function']['seat_jump_special_repeat_count'])
+        self.__skip_date_click = self.config['function']['skip_date_click']
 
         self.end = False
         self.stop = False
@@ -98,10 +99,10 @@ class Macro():
                 # self.__special_area = 'N'
                 print(f'grade cancel!!')
             elif self.key == 'skip_select_date':
-                self.skip_select_date = True
+                self.__skip_date_click = True
                 print('skip_select_date set ok.')
             elif self.key == 'skip_select_date_cancel':
-                self.skip_select_date = False
+                self.__skip_date_click = False
                 print('skip_select_date cancel set ok.')
 
         print("key_interrupt exit.")
@@ -131,17 +132,21 @@ class Macro():
 
                 if self.stop == False and self.part == "time_wait":
                     # 예매 시간까지 대기
-                    pause.until(datetime.datetime(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, 00))
-                    self.part = "popup_check"
+                    if self.__skip_date_click == 'Y':
+                        WebDriverWait(self.driver, 600).until(EC.new_window_is_opened(self.driver.window_handles))
+                        self.part = "change_window"
+                    else:
+                        # 예매 시간까지 대기
+                        pause.until(datetime.datetime(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, 00))
+                        self.part = "popup_check"
 
                 if self.stop == False and self.part == "popup_check":
-                    WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.ID, 'list_date')))
-                    
                     function.check_alert(self.driver)
+                    WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.ID, 'list_date')))
                     self.part = "click_book"
 
                 if self.stop == False and self.part == "click_book":
-                    if self.skip_select_date == False:
+                    if self.__skip_date_click == False:
                         # 날짜선택후 티켓창 오픈
                         cnt = 0
                         ret = function.select_date(self.driver, self.config)
@@ -152,8 +157,11 @@ class Macro():
                                 if ret == True:
                                     break
                     WebDriverWait(self.driver, 10).until(EC.number_of_windows_to_be(2))
-                    self.driver.switch_to.window(self.driver.window_handles[1])
-                    self.part = "certification"
+                    self.part = "change_window"
+                
+                    if self.stop == False and self.part == "change_window":
+                        self.driver.switch_to.window(self.driver.window_handles[1])
+                        self.part = "certification"
 
                 if self.stop == False and self.part == "certification":
                     # 보안문자인증
