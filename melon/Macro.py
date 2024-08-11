@@ -158,10 +158,10 @@ class Macro():
                                     break
                     WebDriverWait(self.driver, 10).until(EC.number_of_windows_to_be(2))
                     self.part = "change_window"
-                
-                    if self.stop == False and self.part == "change_window":
-                        self.driver.switch_to.window(self.driver.window_handles[1])
-                        self.part = "certification"
+
+                if self.stop == False and self.part == "change_window":
+                    self.driver.switch_to.window(self.driver.window_handles[1])
+                    self.part = "certification"
 
                 if self.stop == False and self.part == "certification":
                     # 보안문자인증
@@ -217,7 +217,7 @@ class Macro():
                     elif res == CODE.AREA_ERROR:
                         self.__special_area = "N"
 
-                    self.driver.find_element_by_id('btnReloadSchedule').click()
+                    self.driver.find_element(By.ID, 'btnReloadSchedule').click()
                     self.wait.until(EC.presence_of_element_located((By.ID, "ez_canvas")))
 
                 if self.stop == False and self.part == "catch":
