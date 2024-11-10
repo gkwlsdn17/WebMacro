@@ -26,18 +26,28 @@ def login(driver, id, pw):
     WebDriverWait(driver, 60).until(EC.frame_to_be_available_and_switch_to_it((By.XPATH, '//*[@id="loginAllWrap"]/div[2]/iframe')))
     #
     # driver.switch_to_frame(driver.find_element_by_xpath('//*[@id="loginAllWrap"]/div[2]/iframe'))
-    driver.find_element_by_xpath('//*[@id="userId"]').send_keys(id)
+    # driver.find_element_by_xpath('//*[@id="userId"]').send_keys(id)
+    # time.sleep(0.5)
+    # driver.find_element_by_xpath('//*[@id="userPwd"]').send_keys(pw)
+    # time.sleep(0.5)
+    driver.find_element(By.ID,'userId').send_keys(id)
+    driver.find_element(By.ID,'userPwd').send_keys(pw)
     time.sleep(0.5)
-    driver.find_element_by_xpath('//*[@id="userPwd"]').send_keys(pw)
-    time.sleep(0.5)
-    driver.find_element_by_xpath('//*[@id="btn_login"]').click()
+    # driver.find_element_by_xpath('//*[@id="btn_login"]').click()
+    driver.find_element(By.ID,'btn_login').click()
     time.sleep(0.5)
 
 def first_popup_check(driver):
     try:
-        if driver.find_element_by_css_selector('#popup-prdGuide > div').is_displayed() == 1:
+        # if driver.find_element_by_css_selector('#popup-prdGuide > div').is_displayed() == 1:
+        #     print_debug("닫는다")
+        #     driver.find_element_by_css_selector('#popup-prdGuide > div > div.popupFooter > button').click()
+        # else:
+        #     print_debug("팝업 안열려있음")
+
+        if driver.find_element(By.CSS_SELECTOR, '#popup-prdGuide > div').is_displayed() == 1:
             print_debug("닫는다")
-            driver.find_element_by_css_selector('#popup-prdGuide > div > div.popupFooter > button').click()
+            driver.find_element(By.CSS_SELECTOR,'#popup-prdGuide > div > div.popupFooter > button').click()
         else:
             print_debug("팝업 안열려있음")
     except Exception as e:
@@ -55,18 +65,43 @@ def first_popup_check(driver):
 
 def click_book(driver, date, book_time):
     book_time = book_time[:2] + ":" + book_time[2:]
-    li_list = driver.find_elements_by_css_selector(
-        '#productSide > div > div.sideMain > div.sideContainer.containerTop.sideToggleWrap > div.sideContent.toggleCalendar > div > div > div > div > ul:nth-child(3) > li')
+    # li_list = driver.find_elements_by_css_selector(
+    #     '#productSide > div > div.sideMain > div.sideContainer.containerTop.sideToggleWrap > div.sideContent.toggleCalendar > div > div > div > div > ul:nth-child(3) > li')
+    li_list = driver.find_elements(By.CSS_SELECTOR, 
+                '#productSide > div > div.sideMain > div.sideContainer.containerTop.sideToggleWrap > div.sideContent.toggleCalendar > div > div > div > div > ul:nth-child(3) > li')
+    
     print_debug(f'date_list:{len(li_list)}')
-    for li in li_list:
+    for i, li in enumerate(li_list):
         if li.get_attribute('innerHTML').zfill(2) == date[6:]:
-            li.click()
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(li))
+            driver.execute_script(f"arguments[0].click();", li)
             time.sleep(0.2)
-            bk = driver.find_element_by_css_selector(f'a.timeTableLabel[data-text*="{book_time}"]')
-            print_debug(bk.get_attribute('outerHTML'))
-            bk.click()
+            # bk = driver.find_element_by_css_selector(f'a.timeTableLabel[data-text*="{book_time}"]')
+            book_time.strip()
+            # bk = driver.find_element(By.CSS_SELECTOR, f'a.timeTableLabel[data-text*="{book_time}"]')
+            bk_list =driver.find_elements(By.CSS_SELECTOR,
+                    f'#productSide > div > div.sideMain > div.sideContainer.containerMiddle.sideToggleWrap > div.sideContent > div.sideTimeTable.toggleTimeTable > ul > li'
+            )
+            bk = None
+            for a in bk_list:
+                e = a.find_element(By.CSS_SELECTOR, f'a.timeTableLabel')
+                print(e.text)
+                if book_time in e.text:
+                    bk = e
+                    print_debug(bk.get_attribute('outerHTML'))
+                    driver.execute_script("arguments[0].click();", e)
+                    break  # 원하는 요소를 클릭했으므로 반복문 종료
+            if bk is None:
+                raise Exception("회차 시간 못찾음")
+            # print_debug(bk.get_attribute('outerHTML'))
+            # bk.click()
+            print_debug("예매하기 클릭시도")
+            # driver.find_element_by_css_selector('#productSide > div > div.sideBtnWrap > a.sideBtn.is-primary').click()
+            bk_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.CSS_SELECTOR, '#productSide > div > div.sideBtnWrap > a.sideBtn.is-primary')))
+            driver.execute_script("arguments[0].scrollIntoView(true);", bk_btn)
+            WebDriverWait(driver, 10).until(EC.element_to_be_clickable(bk_btn))
+            driver.execute_script("arguments[0].click();", bk_btn)
             print_debug("예매하기 클릭")
-            driver.find_element_by_css_selector('#productSide > div > div.sideBtnWrap > a.sideBtn.is-primary').click()
             break
 
 def certification(driver):
@@ -352,5 +387,5 @@ def booking(driver, config_special_area, bool_special_area, col_special_area):
     return result
 
 def print_debug(msg):
-    # print(msg)
-    pass
+    print(msg)
+    # pass

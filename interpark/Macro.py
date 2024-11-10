@@ -44,7 +44,9 @@ class Macro():
         self.__seat_jump_special_repeat_count = int(self.config['function']['seat_jump_special_repeat_count'])
 
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver")
-        self.driver = webdriver.Chrome("./chromedriver_win32_v112/chromedriver")
+        # self.driver = webdriver.Chrome("./chromedriver_win32_v112/chromedriver")
+        self.driver = webdriver.Chrome()
+
         self.wait = WebDriverWait(self.driver, 600)
 
         self.end = False
