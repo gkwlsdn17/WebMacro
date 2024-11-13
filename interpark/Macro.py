@@ -42,10 +42,12 @@ class Macro():
         self.__seat_jump_count = int(self.config['function']['seat_jump_count'])
         self.__seat_jump_special_repeat = self.config['function']['seat_jump_special_repeat']
         self.__seat_jump_special_repeat_count = int(self.config['function']['seat_jump_special_repeat_count'])
+        self.__special_grade = self.config['bookInfo']['grade']
 
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver")
         # self.driver = webdriver.Chrome("./chromedriver_win32_v112/chromedriver")
-        self.driver = webdriver.Chrome()
+        # self.driver = webdriver.Chrome()
+        self.driver = function.get_chrome_driver()
 
         self.wait = WebDriverWait(self.driver, 600)
 
@@ -153,14 +155,16 @@ class Macro():
                 if self.stop == False and self.part == "seat_frame_move":
                     WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.ID, 'ifrmSeat')))
                     # 예매창으로 프레임 전환
-                    iframe = self.driver.find_element_by_id('ifrmSeat')
+                    iframe = self.driver.find_element(By.ID,'ifrmSeat')
                     self.driver.switch_to.frame(iframe)
                     self.part = "certification"
 
                 if self.stop == False and self.part == "certification":
                     # 보안문자인증
                     if self.__auto_certification == "N":
+                        time.sleep(2)
                         self.wait.until(EC.invisibility_of_element_located((By.ID, "divRecaptcha")))
+                        print("보안문자 창 닫힘 인식")
                     else:
                         function.certification(self.driver)
                     self.part = "set_seat_jump"
@@ -179,6 +183,7 @@ class Macro():
 
                 # 예매
                 while self.stop == False and self.part == "booking":
+                    print('booking')
                     config_special_area = []
                     col_special_area = []
                     if self.__seatOrder != "" and self.__special_area == "Y":
@@ -187,7 +192,9 @@ class Macro():
                     if self.__colOrder != "" and self.__special_area == "Y":
                         col_special_area = self.__colOrder.split(",")
                     function.print_debug(col_special_area)
-                    res = function.booking(self.driver, config_special_area, self.__seatOrder, col_special_area)
+                    if self.__special_grade != "" and self.__special_area == "Y":
+                        special_grade = self.__special_grade.split(",")
+                    res = function.booking(self.driver, config_special_area, self.__seatOrder, col_special_area, special_grade)
                     function.print_debug(f"res: {res}")
                     if res == CODE.SUCCESS:
                         self.part = "catch"
@@ -200,9 +207,12 @@ class Macro():
                         break
 
                     self.driver.switch_to.default_content()
-                    iframe = self.driver.find_element_by_id('ifrmSeat')
+                    WebDriverWait(self.driver, 600).until(EC.presence_of_element_located((By.ID, 'ifrmSeat')))
+                    iframe = self.driver.find_element(By.ID,'ifrmSeat')
                     self.driver.switch_to.frame(iframe)
-                    self.driver.find_element_by_css_selector('a[onclick="fnRefresh();"]').click()
+                    # self.driver.find_element(By.CSS_SELECTOR,'a[onclick="fnRefresh();"]').click()
+                    self.driver.find_element(By.CSS_SELECTOR, 'body > form:nth-child(2) > div > div.contWrap > div.seatR > div > div.btnWrap > p.fl_r > a').click()
+                    
                     time.sleep(0)
 
                 if self.stop == False and self.part == "catch":
