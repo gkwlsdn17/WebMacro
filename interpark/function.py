@@ -378,9 +378,9 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                     # title="[지정석R] 2층-29구역 1열-7"
                     for col in range(int(col_special_area[0]), int(col_special_area[1])+1):
                         if tag == "":
-                            tag += f'[title*="{config_special_area[0]}"][title="-{col}"]'
+                            tag += f'[title*="{config_special_area[0]}"][title*="-{col}"]'
                         else:
-                            tag += f',[title*="{config_special_area[0]}"][title="-{col}"]'
+                            tag += f',[title*="{config_special_area[0]}"][title*="-{col}"]'
                 else:
                     tag = f'[title*="{config_special_area[0]}"]'
                 print_debug(tag)
@@ -421,12 +421,28 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                 driver.switch_to.frame(iframe)
                 # seats = driver.find_elements_by_css_selector('#Seats')
                 if tag != "":
+                    # script = """
+                    #     const regex_c = /(\d*)열/;
+                    #     const seats = document.querySelectorAll('#Seats""" + tag +"""');
+                    #     const sortedSeats = Array.from(seats).sort((a, b) =>
+                    #         a.getAttribute('title').split('-')[1].match(regex_c)[1] == "" ? a.getAttribute('title').split('-')[1] - b.getAttribute('title').split('-')[1] : parseInt(a.getAttribute('title').split('-')[1].match(regex_c)[1]) - parseInt(b.getAttribute('title').split('-')[1].match(regex_c)[1])
+                    #     );
+                    #     return sortedSeats;
+                    # """
                     script = """
                         const regex_c = /(\d*)열/;
                         const seats = document.querySelectorAll('#Seats""" + tag +"""');
-                        const sortedSeats = Array.from(seats).sort((a, b) =>
-                            a.getAttribute('title').split('-')[1].match(regex_c)[1] == "" ? a.getAttribute('title').split('-')[1] - b.getAttribute('title').split('-')[1] : parseInt(a.getAttribute('title').split('-')[1].match(regex_c)[1]) - parseInt(b.getAttribute('title').split('-')[1].match(regex_c)[1])
-                        );
+
+                        const sortedSeats = Array.from(seats).sort((a, b) => {
+                            const aMatch = a.getAttribute('title').split('-')[1].match(regex_c);
+                            const bMatch = b.getAttribute('title').split('-')[1].match(regex_c);
+
+                            const aValue = aMatch ? parseInt(aMatch[1]) : 0;
+                            const bValue = bMatch ? parseInt(bMatch[1]) : 0;
+
+                            return aValue - bValue;
+                        });
+
                         return sortedSeats;
                     """
                 else:
@@ -459,8 +475,11 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                 driver.switch_to.default_content()
                 iframe = driver.find_element(By.ID,'ifrmSeat')
                 driver.switch_to.frame(iframe)
-                driver.find_element(By.ID,
-                    'body > form:nth-child(2) > div > div.contWrap > div.seatR > div > div.btnWrap > a').click()
+                
+                book_btn = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 'body > form:nth-child(2) > div > div.contWrap > div.seatR > div > div.btnWrap > a'))
+                )
+                book_btn.click()
 
                 try:
                     alert = Alert(driver)
