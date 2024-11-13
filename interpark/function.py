@@ -372,6 +372,10 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
             if len(config_special_area) != 0:
                 print_debug(f"config_special_area[0]: {config_special_area[0]}")
                 if len(col_special_area) > 0:
+                    # ex)
+                    # title="[스탠딩석] 1층-A구역 입장번호-244"
+                    # title="[VIP석] 2층-C2구역-56"
+                    # title="[지정석R] 2층-29구역 1열-7"
                     for col in range(int(col_special_area[0]), int(col_special_area[1])+1):
                         if tag == "":
                             tag += f'[title*="{config_special_area[0]}"][title="-{col}"]'
@@ -388,17 +392,17 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                 try:
                     print_debug(f"area: {area.text}")
 
-                    # 특정 order 영역만 돌게끔 할 때
-                    if len(config_special_area) > 0:
-                            s_check = False
-                            for special in config_special_area:
-                                if special in area.text:
-                                    s_check = True
-                                    break
-                            if s_check == False:
-                                print_debug(f'{area.text}, {special}')
-                                print_debug('영역이 달라서 패스')
-                                continue
+                    # # 특정 order 영역만 돌게끔 할 때
+                    # if len(config_special_area) > 0:
+                    #         s_check = False
+                    #         for special in config_special_area:
+                    #             if special in area.text:
+                    #                 s_check = True
+                    #                 break
+                    #         if s_check == False:
+                    #             print_debug(f'{area.text}, {special}')
+                    #             print_debug('영역이 달라서 패스')
+                    #             continue
                             
                 except Exception as e:
                     # 보안문자창이 갑자기 뜰 때
