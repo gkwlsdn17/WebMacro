@@ -24,8 +24,9 @@ class Macro():
         self.__start_day = int(self.config['program']['day'])
         self.__start_hour = int(self.config['program']['hour'])
         self.__start_minute = int(self.config['program']['minute'])
+        self.__start_second = int(self.config['program']['second'])
 
-        print(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute)
+        print(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, self.__start_second)
 
         self.__id = self.config['loginInfo']['id']
         self.__pw = self.config['loginInfo']['pw']
@@ -116,17 +117,22 @@ class Macro():
                 if self.stop == False and self.part == "login":
                     # 로그인
                     function.login(self.driver, self.__id, self.__pw)
-                    self.part = "time_wait"
-
-                if self.stop == False and self.part == "time_wait":
-                    # 예매시간까지 대기
-                    pause.until(datetime.datetime(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, 00))
                     self.part = "show_booksite"
+
+                # if self.stop == False and self.part == "time_wait":
+                #     # 예매시간까지 대기
+                #     pause.until(datetime.datetime(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, self.__start_second))
+                #     self.part = "show_booksite"
 
                 if self.stop == False and self.part == "show_booksite":
                     # 예매사이트 띄우기
                     self.driver.get(f"https://tickets.interpark.com/goods/{self.__goodsCode}")
                     self.wait.until(EC.url_to_be(f"https://tickets.interpark.com/goods/{self.__goodsCode}"))
+                    self.part = "time_wait"
+
+                if self.stop == False and self.part == "time_wait":
+                    # 예매시간까지 대기
+                    pause.until(datetime.datetime(self.__start_year, self.__start_month, self.__start_day, self.__start_hour, self.__start_minute, self.__start_second))
                     self.part = "wait_clickable_book"
 
                 if self.stop == False and self.part == "wait_clickable_book":
