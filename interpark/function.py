@@ -364,8 +364,8 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
             areas = driver.find_elements(By.CSS_SELECTOR, f'td[seatgradename={grade_text}] > div > ul > li > a')
 
             print_debug(f"len(areas): {len(areas)}")
-            # if len(config_special_area) != 0:
-            #     areas = [area for area in areas if any(config in area.text for config in config_special_area)]
+            if len(config_special_area) != 0:
+                areas = [area for area in areas if any(config in area.text for config in config_special_area)]
             print_debug(f"len(areas) 22222: {len(areas)}")
 
             tag = ""
@@ -388,7 +388,7 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
             for area in areas:
                 if is_certification == True:
                     # 보안문자창 뜨는거 예방
-                    time.sleep(0.4)
+                    time.sleep(0.2)
                 try:
                     print_debug(f"area: {area.text}")
 
@@ -457,13 +457,22 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                 seats = driver.execute_script(script)
 
                 print_debug(f"len (seats): {len(seats)}")
+
                 if len(seats) == 0:
-                    # 다음 영역 선택 속도 지연 (빠르면 매크로로 인식되어버려 보안창뜸)
-                    time.sleep(0.4)
-                    driver.switch_to.default_content()
-                    iframe = driver.find_element(By.ID,'ifrmSeat')
-                    driver.switch_to.frame(iframe)
-                    continue
+
+                    if len(config_special_area) > 0:
+                        config_special_area.pop(0)
+                        print_debug(f"pop 후 남은 config_special_area:{config_special_area}")
+                        
+                    if len(config_special_area) == 0:
+                        return CODE.EMPTY
+                    else:
+                        # 다음 영역 선택 속도 지연 (빠르면 매크로로 인식되어버려 보안창뜸)
+                        time.sleep(0.4)
+                        driver.switch_to.default_content()
+                        iframe = driver.find_element(By.ID,'ifrmSeat')
+                        driver.switch_to.frame(iframe)
+                        continue
 
                 if seat_jump == 'Y' and (len(seats) > seat_jump_count > 0):
                     print(f"{seats[seat_jump_count].get_attribute('title')} click")
