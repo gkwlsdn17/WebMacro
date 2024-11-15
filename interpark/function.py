@@ -180,7 +180,7 @@ def image_check(driver):
     driver.find_element(By.ID,'txtCaptcha').send_keys(value)
     driver.find_element(By.CSS_SELECTOR,'a[onclick="fnCheck()"]').click()
 
-def booking(driver, config_special_area, bool_special_area, col_special_area, special_grade):
+def booking(driver, config_special_area, bool_special_area, col_special_area, special_grade, special_zone):
     result = CODE.EMPTY
     # 좌석 등급 선택
     gradeList = []
@@ -340,6 +340,7 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
             try:
                 time.sleep(0.3)
                 grade.click()
+
                 # 특정 등급만 돌게끔 할 때
                 if len(special_grade) > 0:
                         grade_check = False
@@ -364,8 +365,8 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
             areas = driver.find_elements(By.CSS_SELECTOR, f'td[seatgradename={grade_text}] > div > ul > li > a')
 
             print_debug(f"len(areas): {len(areas)}")
-            if len(config_special_area) != 0:
-                areas = [area for area in areas if any(config in area.text for config in config_special_area)]
+            if len(special_zone) != 0:
+                areas = [area for area in areas if any(config in area.text for config in special_zone)]
             print_debug(f"len(areas) 22222: {len(areas)}")
 
             tag = ""
@@ -386,37 +387,25 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
                 print_debug(tag)
 
             for area in areas:
+                print_debug(f"area: {area.text}")
+
+            for area in areas:
                 if is_certification == True:
                     # 보안문자창 뜨는거 예방
                     time.sleep(0.2)
                 try:
                     print_debug(f"area: {area.text}")
-
-                    # # 특정 order 영역만 돌게끔 할 때
-                    # if len(config_special_area) > 0:
-                    #         s_check = False
-                    #         for special in config_special_area:
-                    #             if special in area.text:
-                    #                 s_check = True
-                    #                 break
-                    #         if s_check == False:
-                    #             print_debug(f'{area.text}, {special}')
-                    #             print_debug('영역이 달라서 패스')
-                    #             continue
-                            
+  
                 except Exception as e:
                     # 보안문자창이 갑자기 뜰 때
                     print(traceback.format_exc())
                     return CODE.ERROR
                 
-
-                # area.click()
                 element = WebDriverWait(driver, 10).until(
                     EC.element_to_be_clickable(area)
                 )
                 element.click()              
                 
-
                 iframe = driver.find_element(By.ID,'ifrmSeatDetail')
                 driver.switch_to.frame(iframe)
                 # seats = driver.find_elements_by_css_selector('#Seats')
@@ -460,12 +449,12 @@ def booking(driver, config_special_area, bool_special_area, col_special_area, sp
 
                 if len(seats) == 0:
 
-                    if len(config_special_area) > 0:
-                        config_special_area.pop(0)
-                        print_debug(f"pop 후 남은 config_special_area:{config_special_area}")
+                    if len(special_zone) > 0:
+                        special_zone.pop(0)
+                        print_debug(f"pop 후 남은 special_zone:{special_zone}")
                         
-                    if len(config_special_area) == 0:
-                        return CODE.EMPTY
+                        if len(special_zone) == 0:
+                            return CODE.EMPTY
                     else:
                         # 다음 영역 선택 속도 지연 (빠르면 매크로로 인식되어버려 보안창뜸)
                         time.sleep(0.4)

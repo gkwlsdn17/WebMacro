@@ -43,7 +43,10 @@ class Macro():
         self.__seat_jump_count = int(self.config['function']['seat_jump_count'])
         self.__seat_jump_special_repeat = self.config['function']['seat_jump_special_repeat']
         self.__seat_jump_special_repeat_count = int(self.config['function']['seat_jump_special_repeat_count'])
+        # grade == VIP, R석 같은것
         self.__special_grade = self.config['bookInfo']['grade']
+        # 등급 밑에 001구역 같은 글자로 특정짓기 위한 변수
+        self.__special_zone = self.config['bookInfo']['zone']
 
         # self.driver = webdriver.Chrome("./chromedriver_win32/chromedriver")
         # self.driver = webdriver.Chrome("./chromedriver_win32_v112/chromedriver")
@@ -192,6 +195,8 @@ class Macro():
                     print('booking')
                     config_special_area = []
                     col_special_area = []
+                    special_grade = []
+                    special_zone = []
                     if self.__seatOrder != "" and self.__special_area == "Y":
                         config_special_area = self.__seatOrder.split(",")
                     function.print_debug(config_special_area)
@@ -200,7 +205,11 @@ class Macro():
                     function.print_debug(col_special_area)
                     if self.__special_grade != "" and self.__special_area == "Y":
                         special_grade = self.__special_grade.split(",")
-                    res = function.booking(self.driver, config_special_area, self.__seatOrder, col_special_area, special_grade)
+                    function.print_debug(special_grade)
+                    if self.__special_zone != "" and self.__special_area == "Y":
+                        special_zone = self.__special_zone.split(",")
+                    function.print_debug(special_zone)
+                    res = function.booking(self.driver, config_special_area, self.__seatOrder, col_special_area, special_grade, special_zone)
                     function.print_debug(f"res: {res}")
                     if res == CODE.SUCCESS:
                         self.part = "catch"
