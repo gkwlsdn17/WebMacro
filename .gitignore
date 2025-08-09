@@ -2,6 +2,7 @@
 /melon/config*
 /melon_v2/config*
 /interpark/config*
+/melon_v2/secret.run_key
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -10,6 +10,19 @@ import traceback
 import queue
 import time
 
+import hashlib
+
+EXPECTED_HASH = "aa8f2d6c9228b8a52cb6f3f3f3dfe671589905badfd332c08c385b13878b2266"
+
+try:
+    with open("secret.run_key") as f:
+        key = f.read().strip()
+    if hashlib.sha256(key.encode()).hexdigest() != EXPECTED_HASH:
+        raise Exception("실행 권한 없음")
+except FileNotFoundError:
+    print("secret.run_key 파일이 없습니다.")
+    exit(1)
+
 # Flask 앱 설정
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'melon-ticket-secret'
