@@ -200,10 +200,10 @@ class Macro():
                     config_special_area = []
                     config_grade_area = []
                     if self.__seatOrder != "" and self.__special_area == "Y":
-                        config_special_area = self.__seatOrder.split(",")
+                        config_special_area = [item.strip() for item in self.__seatOrder.split(",")]
                     function.print_debug(f'config_special_area setting:{config_special_area}')
                     if self.__seatGrade != "" and self.__special_area == "Y":
-                        config_grade_area = self.__seatGrade.split(",")
+                        config_grade_area = [item.strip() for item in self.__seatGrade.split(",")]
                     function.print_debug(f'config_grade_area setting:{config_grade_area}')
 
                     res = function.select_seat(self.driver, config_grade_area, config_special_area, self.__special_area)
