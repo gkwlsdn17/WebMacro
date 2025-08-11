@@ -53,7 +53,7 @@ def select_date(driver, config):
     print(f'date_list: {date_list}')
     for li in date_list:
         print(li.get_attribute('data-perfday'))
-        if config['bookInfo']['bookDate'] == li.get_attribute('data-perfday'):
+        if config['bookInfo']['book_date'] == li.get_attribute('data-perfday'):
             print('date click')
             try:
                 li.click()
@@ -150,21 +150,28 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
             if len(tmp_special_area) == 0:
                 tmp_special_area.append("")
             print_debug(f'config_special_area:{tmp_special_area}')
+            
             while len(tmp_special_area) > 0:
-                if len(tmp_special_area) > 1 or tmp_special_area[0] != "":
-                    new_area_list = [area for area in area_list if tmp_special_area[0] in area.text]
-                    print_debug(f'len(new area_list):{len(new_area_list)} , tmp_special_area[0]:{tmp_special_area[0]}')
-                    res = select_box(driver, new_area_list, tmp_special_area[0])
-                else:
-                    res = select_box(driver, area_list, tmp_special_area[0])
-                print_debug(f"RESULT: {res}")
-                if res == CODE.EMPTY:
-                    tmp_special_area.pop(0)
-                    continue
-                elif res == CODE.CONFLICT:
-                    return CODE.CONFLICT
-                else:
-                    return CODE.SUCCESS
+                try:
+                    if len(tmp_special_area) > 1 or tmp_special_area[0] != "":
+                        new_area_list = [area for area in area_list if tmp_special_area[0] in area.text]
+                        print_debug(f'len(new area_list):{len(new_area_list)} , tmp_special_area[0]:{tmp_special_area[0]}')
+                        res = select_box(driver, new_area_list, tmp_special_area[0])
+                    else:
+                        res = select_box(driver, area_list, tmp_special_area[0])
+                    print_debug(f"RESULT: {res}")
+                    if res == CODE.EMPTY:
+                        tmp_special_area.pop(0)
+                        continue
+                    elif res == CODE.CONFLICT:
+                        return CODE.CONFLICT
+                    else:
+                        return CODE.SUCCESS
+                except Exception as e:
+                    print("select_seat error:")
+                    print(e)
+                    break
+            
         return res
     else:
         print_debug("grade 없음")
@@ -172,10 +179,12 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
         return res
 
 def select_box(driver, li_list, choice=""):
+    time.sleep(0.15)
     for i in li_list:
         print_debug(f'area = {i.text}')
         area = i.find_element(By.CLASS_NAME,'area_tit').text.strip()
         print_debug(area + ' choice: ' + choice)
+
         if choice == "":
             i.click()
             res = select_rect(driver)
@@ -236,14 +245,14 @@ def select_rect(driver):
     try:
         alert = Alert(driver)
         alert_text = alert.text  # alert 메시지 텍스트 얻기
-        # 띄어쓰기 제거 후 "이미" 단어가 포함됐는지 체크
+        # 띄어쓰기 제거 후 "결제" 단어가 포함됐는지 체크
         alert_text_no_space = alert_text.replace(" ", "")
-        if "이미" in alert_text_no_space:
-            print("Alert에 '이미' 문구가 포함됨")
+        if "결제" in alert_text_no_space:
+            print("Alert에 '결제' 문구가 포함됨")
             alert.accept()
             return CODE.CONFLICT
         else:
-            print("Alert는 있으나 '이미' 문구는 없음")
+            print("Alert는 있으나 '결제' 문구는 없음")
             alert.dismiss()  # 또는 alert.accept() 상황에 따라 선택
             return CODE.SUCCESS  # 다른 분기용 코드
     except:
