@@ -151,20 +151,25 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
                 tmp_special_area.append("")
             print_debug(f'config_special_area:{tmp_special_area}')
             while len(tmp_special_area) > 0:
-                if len(tmp_special_area) > 1 or tmp_special_area[0] != "":
-                    new_area_list = [area for area in area_list if tmp_special_area[0] in area.text]
-                    print_debug(f'len(new area_list):{len(new_area_list)} , tmp_special_area[0]:{tmp_special_area[0]}')
-                    res = select_box(driver, new_area_list, tmp_special_area[0])
-                else:
-                    res = select_box(driver, area_list, tmp_special_area[0])
-                print_debug(f"RESULT: {res}")
-                if res == CODE.EMPTY:
-                    tmp_special_area.pop(0)
-                    continue
-                elif res == CODE.CONFLICT:
-                    return CODE.CONFLICT
-                else:
-                    return CODE.SUCCESS
+                try:
+                    if len(tmp_special_area) > 1 or tmp_special_area[0] != "":
+                        new_area_list = [area for area in area_list if tmp_special_area[0] in area.text]
+                        print_debug(f'len(new area_list):{len(new_area_list)} , tmp_special_area[0]:{tmp_special_area[0]}')
+                        res = select_box(driver, new_area_list, tmp_special_area[0])
+                    else:
+                        res = select_box(driver, area_list, tmp_special_area[0])
+                    print_debug(f"RESULT: {res}")
+                    if res == CODE.EMPTY:
+                        tmp_special_area.pop(0)
+                        continue
+                    elif res == CODE.CONFLICT:
+                        return CODE.CONFLICT
+                    else:
+                        return CODE.SUCCESS
+                except Exception as e:
+                    print("select_seat error:")
+                    print(e)
+                    break
         return res
     else:
         print_debug("grade 없음")
