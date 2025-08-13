@@ -245,14 +245,14 @@ def select_rect(driver):
     try:
         alert = Alert(driver)
         alert_text = alert.text  # alert 메시지 텍스트 얻기
-        # 띄어쓰기 제거 후 "결제" 단어가 포함됐는지 체크
+        # 띄어쓰기 제거 후 "다른" 단어가 포함됐는지 체크
         alert_text_no_space = alert_text.replace(" ", "")
-        if "결제" in alert_text_no_space:
-            print("Alert에 '결제' 문구가 포함됨")
+        if "다른" in alert_text_no_space:
+            print("Alert에 '다른' 문구가 포함됨")
             alert.accept()
             return CODE.CONFLICT
         else:
-            print("Alert는 있으나 '결제' 문구는 없음")
+            print("Alert는 있으나 '다른' 문구는 없음")
             alert.dismiss()  # 또는 alert.accept() 상황에 따라 선택
             return CODE.SUCCESS  # 다른 분기용 코드
     except:

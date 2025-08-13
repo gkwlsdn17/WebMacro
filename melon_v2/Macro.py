@@ -504,7 +504,11 @@ class Macro():
             if self.end == True:
                 break
 
-        self.emit_log("매크로 종료", "info")
+        # self.emit_log("매크로 종료", "info")
+        print("종료하려면 아무 키나 누르고 Enter를 치세요... 1")
+        input()
+        print("종료하려면 아무 키나 누르고 Enter를 치세요... 2")
+        input()
 
     def start_with_ui(self):
         """UI 모드로 시작"""
