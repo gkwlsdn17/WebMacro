@@ -31,6 +31,9 @@ const MelonTicketUI = () => {
       seat_jump_special_repeat: 'N',
       seat_jump_special_repeat_count: 0,
       skip_date_click: 'N'
+    },
+    payment: {
+      phone: ''
     }
   });
 

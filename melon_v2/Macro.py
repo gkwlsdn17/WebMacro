@@ -23,8 +23,10 @@ class Macro():
         
         # 브리지에서 설정 가져오기 (우선순위)
         if self.bridge:
+            print("브리지에서 가져오기")
             self.load_config_from_bridge()
         else:
+            print("기존방식")
             # 기존 방식으로 설정 로드
             self.load_config_from_file()
 
@@ -64,6 +66,7 @@ class Macro():
         self.__seat_jump_special_repeat = config['function']['seat_jump_special_repeat']
         self.__seat_jump_special_repeat_count = int(config['function']['seat_jump_special_repeat_count'])
         self.__skip_date_click = config['function']['skip_date_click']
+        self.__phone = config['payment']['phone']
         
         self.emit_log(f"웹 UI 설정을 로드했습니다:", "info")
         self.emit_log(f"  - 아이디: {self.__id}", "info")
@@ -267,6 +270,37 @@ class Macro():
         except Exception as e:
             self.emit_log(f"예매 완료 확인 중 오류: {e}", "warning")
             return False
+        
+    def check_current_window(self):
+        """현재 어느 창에 있는지 확인"""
+        print("현재 어느 창에 있는지 확인")
+        try:
+            current_handle = self.driver.current_window_handle
+            if len(self.driver.window_handles) > 1:
+                if current_handle == self.driver.window_handles[0]:
+                    return "main_window"
+                else:
+                    return "new_window"
+            else:
+                return "single_window"
+        except:
+            return "error"
+        
+    def switch_to_main_window(self):
+        """메인 창으로 전환하는 함수"""
+        try:
+            if len(self.driver.window_handles) > 0:
+                main_window = self.driver.window_handles[0]
+                if self.driver.current_window_handle != main_window:
+                    self.driver.switch_to.window(main_window)
+                    self.emit_log("메인 창으로 전환됨", "info")
+                    return True
+                else:
+                    self.emit_log("이미 메인 창에 있음", "info")
+                    return True
+        except Exception as e:
+            self.emit_log(f"메인 창 전환 실패: {str(e)}", "error")
+            return False
 
     def run(self):
         """메인 실행 루프"""
@@ -352,10 +386,18 @@ class Macro():
                 if self.stop == False and self.part == "change_window":
                     self.emit_log("새 창으로 전환", "info")
                     self.update_status()
+                    self.check_current_window()
                     self.driver.switch_to.window(self.driver.window_handles[1])
                     self.part = "certification"
 
                 if self.stop == False and self.part == "certification":
+
+                    window_state = self.check_current_window()
+                    if window_state == "main_window":
+                        self.emit_log("메인 창에 있음, 새 창으로 전환 필요", "warning")
+                        self.part = "change_window"
+                        continue
+                        
                     self.emit_log("보안문자 인증 중...", "info")
                     self.update_status()
                     
@@ -447,7 +489,7 @@ class Macro():
                         
                         # 페이지가 변경되었을 가능성이 있으므로 예매 완료 확인
                         if self.check_booking_page_elements():
-                            self.emit_log("예매가 완료되었습니다!", "success")
+                            self.emit_log("좌석 선택이 완료되었습니다!", "success")
                             self.booking_success = True
                             self.part = "catch"
                             break
@@ -458,7 +500,7 @@ class Macro():
                             continue
 
                 if self.stop == False and self.part == "catch":
-                    self.emit_log("🎉 예매 완료!", "success")
+                    self.emit_log("🎉 좌석 선택 완료!", "success")
                     self.update_status()
                     
                     try:
@@ -466,25 +508,46 @@ class Macro():
                             playsound("catch.mp3")
                     except Exception as e:
                         self.emit_log(f"사운드 재생 오류: {e}", "warning")
+
+                    self.part = "payment1"
                     
-                    # 완료 처리
-                    self.emit_log('✅ 예매가 성공적으로 완료되었습니다!', "success")
-                    self.emit_log('🔄 추가 예매를 원하시면 새로 시작해주세요.', "info")
-                    
-                    # 완료 상태로 설정
-                    self.booking_success = True
-                    self.stop = True
-                    self.part = "completed"
+                if self.stop == False and self.part == "payment1":
+                    self.emit_log("매수 선택 시작", "info")
                     self.update_status()
+
+                    payment1_result = function.payment1(self.driver)
+                    if payment1_result:
+                        self.emit_log("매수 선택 완료", "success")
+                        self.part = "payment2"
+                    else:
+                        raise RuntimeError("매수 선택 오류 발생")
+
+                if self.stop == False and self.part == "payment2":
+                    self.emit_log("결제 시작!", "info")
+                    self.update_status()
+                    payment2_result = function.payment2(self.driver, self.__phone)
+                    if payment2_result:
+                        self.emit_log("결제 완료", "success")
+                        # 완료 처리
+                        self.emit_log('✅ 예매가 성공적으로 완료되었습니다!', "success")
+                        self.emit_log('🔄 추가 예매를 원하시면 새로 시작해주세요.', "info")
+                        
+                        # 완료 상태로 설정
+                        self.booking_success = True
+                        self.stop = True
+                        self.part = "completed"
+                        self.update_status()
                     
-                    # UI 모드에서는 브리지 상태도 업데이트
-                    if self.bridge:
-                        self.bridge.is_paused = True
-                        self.bridge.current_part = "completed"
-                        self.bridge.emit_status()
-                        self.bridge.emit_log("🎊 축하합니다! 예매가 완료되었습니다!", "success")
+                        # UI 모드에서는 브리지 상태도 업데이트
+                        if self.bridge:
+                            self.bridge.is_paused = True
+                            self.bridge.current_part = "completed"
+                            self.bridge.emit_status()
+                            self.bridge.emit_log("🎊 축하합니다! 예매가 완료되었습니다!", "success")
                     
-                    break  # 루프 탈출
+                        break  # 루프 탈출
+                    else:
+                        raise RuntimeError("결제2 오류 발생")
 
             except Exception as e:
                 error_msg = f'현재 단계: {self.part}\n오류 내용:\n{traceback.format_exc()}'

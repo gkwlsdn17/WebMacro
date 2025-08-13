@@ -75,6 +75,9 @@ class MacroBridge:
                 'seat_jump_special_repeat': 'N',
                 'seat_jump_special_repeat_count': 0,
                 'skip_date_click': 'N'
+            },
+            'payment': {
+                'phone': ''
             }
         }
         
@@ -96,7 +99,7 @@ class MacroBridge:
                                 old_value = config[section_name][key]
                                 try:
                                     # 숫자로 변환 시도
-                                    if value.isdigit():
+                                    if value.isdigit() and key not in ['phone']:
                                         config[section_name][key] = int(value)
                                     else:
                                         config[section_name][key] = value
