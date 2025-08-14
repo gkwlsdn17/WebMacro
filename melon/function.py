@@ -19,15 +19,24 @@ seat_jump_count = 0
 seat_jump_special_repeat = ""
 seat_jump_special_repeat_count = 0
 
-def login(driver,id, pw):
-
-    driver.get("https://member.melon.com/muid/family/ticket/login/web/login_informM.htm")
-    WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id')))
+def login(driver, id, pw):
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            driver.get("https://member.melon.com/muid/family/ticket/login/web/login_informM.htm")
+            WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'id')))
+            break
+        except Exception as e:
+            print(f"페이지 로드 시도 {attempt + 1} 실패: {e}")
+            if attempt < max_retries - 1:
+                time.sleep(2)
+            else:
+                raise
+    
     driver.find_element(By.ID,'id').send_keys(id)
     driver.find_element(By.ID,'pwd').send_keys(pw)
     time.sleep(0.5)
     driver.find_element(By.ID,'btnLogin').click()
-
     time.sleep(0.3)
 
 def check_alert(driver):
@@ -51,11 +60,17 @@ def select_date(driver, config):
     WebDriverWait(driver, 30).until(EC.presence_of_element_located((By.ID, 'list_date')))
     date_list = driver.find_elements(By.XPATH,'//*[@id="list_date"]/li')
     print(f'date_list: {date_list}')
+    if len(date_list) == 0:
+        time.sleep(1)
+        date_list = driver.find_elements(By.XPATH,'//*[@id="list_date"]/li')
+        print(f'date_list: {date_list}')
+        
     for li in date_list:
         print(li.get_attribute('data-perfday'))
         if config['bookInfo']['bookDate'] == li.get_attribute('data-perfday'):
             print('date click')
             try:
+                li.click()
                 li.click()
                 break
             except Exception as e:
@@ -74,6 +89,7 @@ def select_date(driver, config):
             if config['bookInfo']['bookTime'] == book_time:
                 print("time ok")
                 li.click()
+                li.click()
                 break
 
         driver.find_element(By.XPATH, '//*[@id="ticketReservation_Btn"]').click()
@@ -85,20 +101,36 @@ def select_date(driver, config):
 
 def certification(driver, img_folder_path):
     i = 0
-    try:
-        while driver.find_element(By.ID,'certification').is_displayed() == 1:
-            i += 1
-            print(f"check: {i}")
-            if i > 10:
-                break
-            image_check(driver, img_folder_path)
-            if driver.find_element(By.ID,'certification').is_displayed() == 1:
-                driver.find_element(By.ID,'btnReload').click()
-                driver.find_element(By.ID,'label-for-captcha').clear()
-                # time.sleep(0.1)
-        print(driver.find_element(By.ID,'certification').is_displayed())
-    except:
-        print("no certification")
+    err = 0
+    
+    while True:  # 무한 루프로 변경
+        try:
+            while driver.find_element(By.ID,'certification').is_displayed() == 1:
+                i += 1
+                print(f"check: {i}")
+                if i > 10:
+                    return False
+                image_check(driver, img_folder_path)
+                if driver.find_element(By.ID,'certification').is_displayed() == 1:
+                    driver.find_element(By.ID,'btnReload').click()
+                    driver.find_element(By.ID,'label-for-captcha').clear()
+                    time.sleep(0.2)
+            
+            print(driver.find_element(By.ID,'certification').is_displayed())
+            return True
+            
+        except Exception as e:
+            print("no certification")
+            err += 1
+            if i > 0:
+                print(e)
+                if err > 20:
+                    return False
+                print(f"재시도 중... (현재 i={i})")
+                time.sleep(1)  # 잠시 대기 후 재시도
+                continue  # while True 루프 계속
+            else:
+                return True
 
 def image_check(driver, img_folder_path):
     capchaImg = driver.find_element(By.ID,'captchaImg')
@@ -145,6 +177,20 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
             tr.click()
             time.sleep(0.1)
             box_list_area = grade_summary[idx+1]
+
+            """area_list의 텍스트가 로딩될 때까지 대기"""
+            try:
+                WebDriverWait(driver, 1).until(
+                    lambda d: any(
+                        li.text.strip() != "" 
+                        for li in box_list_area.find_elements(By.CSS_SELECTOR,'td > div > ul > li')
+                    )
+                )
+            except Exception as e:
+                print_debug(f'구역 텍스트 로딩 실패: {e}')
+                print_debug(f'등급 재클릭 시도')
+                tr.click()
+
             area_list = box_list_area.find_elements(By.CSS_SELECTOR,'td > div > ul > li')
             print_debug(f'len(area_list):{len(area_list)}')
             if len(tmp_special_area) == 0:
@@ -178,28 +224,58 @@ def select_seat(driver, config_grade_area, config_special_area, bool_special_are
 
 def select_box(driver, li_list, choice=""):
     for i in li_list:
-        print_debug(f'area = {i.text}')
-        area = i.find_element(By.CLASS_NAME,'area_tit').text.strip()
-        print_debug(area + ' choice: ' + choice)
-        if choice == "":
-            i.click()
-            res = select_rect(driver)
-            if res == CODE.SUCCESS:
-                return CODE.SUCCESS
-            elif res == CODE.CONFLICT:
-                return CODE.CONFLICT
-            else:
-                continue
-        else:
-            if choice in area:
-                i.click()
-                res = select_rect(driver)
-                if res == CODE.SUCCESS:
-                    return CODE.SUCCESS
-                elif res == CODE.CONFLICT:
-                    return CODE.CONFLICT
+        try:
+
+            print_debug(f'area = {i.text}')
+            if i.text == "":
+                break
+            area_element = i.find_element(By.CLASS_NAME,'area_tit')
+            area = area_element.text.strip()
+            print_debug(f'area = "{area}", choice: "{choice}"')
+            # 텍스트가 비어있으면 스크롤해서 로딩 시도
+            if area == "":
+                print_debug("텍스트 비어있음, 스크롤 시도")
+                driver.execute_script("arguments[0].scrollIntoView(true);", i)
+                # time.sleep(0.5)  # 로딩 대기
+                area = area_element.text.strip()  # 다시 텍스트 가져오기
+                # print_debug(f'스크롤 후 area = "{area}"')
+
+            if choice == "" or choice in area:
+                # print_debug(f"클릭 시도: {area}")
+
+                # 스크롤 후 클릭
+                # driver.execute_script("arguments[0].scrollIntoView(true);", i)
+                # time.sleep(0.1)
+
+                try:
+                    i.click()
+                    # print_debug("일반 클릭 성공")
+                except:
+                    print_debug("일반 클릭 실패, JS 클릭 시도")
+                    driver.execute_script("arguments[0].click();", i)
+
+                if choice == "":
+                    i.click()
+                    res = select_rect(driver)
+                    if res == CODE.SUCCESS:
+                        return CODE.SUCCESS
+                    elif res == CODE.CONFLICT:
+                        return CODE.CONFLICT
+                    else:
+                        continue
                 else:
-                    break
+                    if choice in area:
+                        i.click()
+                        res = select_rect(driver)
+                        if res == CODE.SUCCESS:
+                            return CODE.SUCCESS
+                        elif res == CODE.CONFLICT:
+                            return CODE.CONFLICT
+                        else:
+                            break
+        except Exception as e:
+            print_debug(f"select_box 내부 오류: {e}")
+            continue
 
     return CODE.EMPTY
 def select_rect(driver):
@@ -240,10 +316,14 @@ def select_rect(driver):
 
     try:
         alert = Alert(driver)
+        # alert 텍스트 출력
+        alert_text = alert.text
+        print(f"Alert 내용: {alert_text}")
         # 이미 Alert이 떠 있는 경우, accept() 메서드를 사용하여 Alert을 수락하거나 dismiss() 메서드를 사용하여 Alert을 취소할 수 있습니다.
         # 예시: alert.accept()
         alert.accept()
         print("Alert is present")
+        # return CODE.SUCCESS
         return CODE.CONFLICT
     except:
         print("Alert is not present")
