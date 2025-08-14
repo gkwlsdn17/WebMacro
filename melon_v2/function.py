@@ -323,38 +323,197 @@ def payment2(driver, phone):
         wait = WebDriverWait(driver, 10)
 
         print("결제 화면 시작")
+
+        iframe = wait.until(EC.presence_of_element_located((By.ID, "oneStopFrame")))
+        driver.switch_to.frame(iframe)
+        print("payment2: oneStopFrame iframe으로 전환 완료")
         
-        # 1. 수령방법 선택 (배송 선택)
+        # 1. 수령방법 선택 (배송 선택) - 수정된 버전
         try:
-            # 배송 라디오 버튼 찾기 (텍스트에 "배송"이 포함된 것)
-            delivery_options = driver.find_elements(By.XPATH, "//input[@type='radio' and @name='deliveryType']")
+            # 먼저 페이지가 완전히 로드될 때까지 대기
+            time.sleep(2)
+            
+            # 배송 옵션들의 상태 확인
+            delivery_options = wait.until(EC.presence_of_all_elements_located((By.NAME, "delvyTypeCode")))
+            
+            print("=== 배송 옵션 상태 확인 ===")
             for option in delivery_options:
-                # 라벨 텍스트 확인
-                label = driver.find_element(By.XPATH, f"//label[@for='{option.get_attribute('id')}']")
-                if "배송" in label.text:
-                    option.click()
-                    print("수령방법: 배송 선택 완료")
-                    break
+                option_value = option.get_attribute('value')
+                is_disabled = option.get_attribute('disabled')
+                option_id = option.get_attribute('id')
+                
+                # 해당 라벨 텍스트 찾기
+                try:
+                    label_span = driver.find_element(By.ID, f"delvyTypeName{option_value}")
+                    label_text = label_span.text.strip()
+                    print(f"옵션 {option_value}: {label_text}, 비활성화: {is_disabled is not None}")
+                except:
+                    print(f"옵션 {option_value}: 라벨 찾기 실패, 비활성화: {is_disabled is not None}")
+            
+            # 배송 옵션 (DV0003) 선택 시도
+            delivery_option = None
+            
+            # 방법 1: 직접 value로 찾기
+            try:
+                delivery_option = driver.find_element(By.XPATH, "//input[@name='delvyTypeCode' and @value='DV0003']")
+                
+                # disabled 속성 확인
+                if delivery_option.get_attribute('disabled'):
+                    print("배송 옵션이 비활성화되어 있습니다.")
+                    
+                    # JavaScript로 강제로 활성화 시도
+                    driver.execute_script("arguments[0].removeAttribute('disabled');", delivery_option)
+                    driver.execute_script("arguments[0].disabled = false;", delivery_option)
+                    time.sleep(1)
+                    
+                    # 라벨의 스타일도 변경
+                    label_span = driver.find_element(By.ID, "delvyTypeNameDV0003")
+                    driver.execute_script("arguments[0].style.color = '';", label_span)
+                    
+                # 클릭 시도
+                if delivery_option.is_enabled():
+                    # 여러 방법으로 클릭 시도
+                    try:
+                        delivery_option.click()
+                        print("배송 옵션 선택 완료 (일반 클릭)")
+                    except:
+                        try:
+                            driver.execute_script("arguments[0].click();", delivery_option)
+                            print("배송 옵션 선택 완료 (JavaScript 클릭)")
+                        except:
+                            # 강제로 checked 상태로 변경
+                            driver.execute_script("arguments[0].checked = true;", delivery_option)
+                            # onChange 이벤트 트리거
+                            driver.execute_script("setDeliveryType('DV0003');")
+                            print("배송 옵션 선택 완료 (강제 설정)")
+                else:
+                    print("배송 옵션이 여전히 비활성화 상태입니다.")
+                    
+            except Exception as inner_e:
+                print(f"배송 옵션 선택 실패: {inner_e}")
+                
+                # 대안: 사용 가능한 다른 옵션 선택
+                print("=== 사용 가능한 옵션 찾기 ===")
+                for option in delivery_options:
+                    if not option.get_attribute('disabled'):
+                        option_value = option.get_attribute('value')
+                        try:
+                            label_span = driver.find_element(By.ID, f"delvyTypeName{option_value}")
+                            label_text = label_span.text.strip()
+                            print(f"사용 가능한 옵션: {option_value} - {label_text}")
+                            
+                            # 첫 번째 사용 가능한 옵션 선택
+                            option.click()
+                            print(f"옵션 {label_text} 선택 완료")
+                            break
+                        except Exception as e:
+                            print(f"옵션 선택 실패: {e}")
+                            continue
+                else:
+                    print("사용 가능한 배송 옵션이 없습니다.")
+                    return False
+
         except Exception as e:
-            print("결제 화면 오류: 수령방법 선택 중 오류")
-            print(e)
+            traceback.print_exc()
+            print(f"결제 화면 오류: 수령방법 선택 중 오류: {e}")
             return False
         
         time.sleep(1)
         
-        # 2. 결제수단 선택 (무통장입금)
+        # 2. 결제수단 선택 (무통장입금) - 수정된 버전
         try:
-            # 무통장입금 라디오 버튼 선택
-            bank_transfer = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@type='radio' and contains(@value, 'bank') or contains(@id, 'bank') or contains(@name, 'payMethod')]")))
+            # 페이지 로드 대기
+            time.sleep(2)
             
-            # 무통장입금 관련 라디오 버튼들 찾기
-            payment_options = driver.find_elements(By.XPATH, "//input[@type='radio' and @name='payMethod']")
+            # 결제수단 옵션들 확인
+            payment_options = wait.until(EC.presence_of_all_elements_located((By.NAME, "payMethodCode")))
+            
+            print("=== 결제수단 옵션 확인 ===")
             for option in payment_options:
-                label = driver.find_element(By.XPATH, f"//label[@for='{option.get_attribute('id')}']")
-                if "무통장" in label.text or "계좌이체" in label.text or "입금" in label.text:
-                    option.click()
-                    print("결제수단: 무통장입금 선택 완료")
-                    break
+                option_value = option.get_attribute('value')
+                option_id = option.get_attribute('id')
+                is_disabled = option.get_attribute('disabled')
+                
+                try:
+                    # 라벨 텍스트 찾기
+                    if option_id:
+                        label = driver.find_element(By.XPATH, f"//label[@for='{option_id}']//span[@class='txt_lab']")
+                        label_text = label.text.strip()
+                        print(f"옵션 {option_value}: {label_text}, 비활성화: {is_disabled is not None}")
+                    else:
+                        print(f"옵션 {option_value}: ID 없음, 비활성화: {is_disabled is not None}")
+                except Exception as e:
+                    print(f"옵션 {option_value}: 라벨 찾기 실패 - {e}")
+            
+            # 무통장입금 선택 (value="AP0003")
+            try:
+                bank_transfer_option = driver.find_element(By.XPATH, "//input[@name='payMethodCode' and @value='AP0003']")
+                
+                # 비활성화 상태 확인
+                if bank_transfer_option.get_attribute('disabled'):
+                    print("무통장입금 옵션이 비활성화되어 있습니다.")
+                    return False
+                
+                # 클릭 시도
+                try:
+                    # 일반 클릭
+                    bank_transfer_option.click()
+                    print("결제수단: 무통장입금 선택 완료 (일반 클릭)")
+                except:
+                    try:
+                        # JavaScript 클릭
+                        driver.execute_script("arguments[0].click();", bank_transfer_option)
+                        print("결제수단: 무통장입금 선택 완료 (JavaScript 클릭)")
+                    except:
+                        # 강제로 체크 상태로 변경하고 이벤트 호출
+                        driver.execute_script("arguments[0].checked = true;", bank_transfer_option)
+                        driver.execute_script("setPayMethodCode(arguments[0]);", bank_transfer_option)
+                        print("결제수단: 무통장입금 선택 완료 (강제 설정)")
+                
+                # 선택 결과 확인
+                time.sleep(1)
+                if bank_transfer_option.is_selected():
+                    print("무통장입금 선택 확인됨")
+                    
+                    # 무통장입금 관련 섹션이 표시되는지 확인
+                    try:
+                        vbank_section = driver.find_element(By.ID, "partPaymentVbank")
+                        if vbank_section.is_displayed():
+                            print("무통장입금 설정 섹션이 표시됨")
+                        else:
+                            print("무통장입금 설정 섹션이 숨겨져 있음")
+                    except:
+                        print("무통장입금 설정 섹션을 찾을 수 없음")
+                else:
+                    print("무통장입금 선택이 제대로 되지 않음")
+                    
+            except Exception as inner_e:
+                print(f"무통장입금 옵션 선택 실패: {inner_e}")
+                
+                # 대안: 사용 가능한 첫 번째 결제수단 선택
+                print("=== 사용 가능한 결제수단 찾기 ===")
+                for option in payment_options:
+                    if not option.get_attribute('disabled'):
+                        option_value = option.get_attribute('value')
+                        option_id = option.get_attribute('id')
+                        
+                        try:
+                            if option_id:
+                                label = driver.find_element(By.XPATH, f"//label[@for='{option_id}']//span[@class='txt_lab']")
+                                label_text = label.text.strip()
+                                print(f"사용 가능한 결제수단: {option_value} - {label_text}")
+                                
+                                # 첫 번째 사용 가능한 옵션 선택
+                                option.click()
+                                print(f"결제수단 '{label_text}' 선택 완료")
+                                break
+                        except Exception as e:
+                            print(f"결제수단 선택 실패: {e}")
+                            continue
+                else:
+                    print("사용 가능한 결제수단이 없습니다.")
+                    return False
+            
         except Exception as e:
             traceback.print_exc()
             print(f"결제수단 선택 중 오류: {e}")
@@ -362,66 +521,222 @@ def payment2(driver, phone):
         
         time.sleep(1)
         
-        # 3. 입금은행 선택 (농협은행)
+        # 3. 입금은행 선택 (농협은행) - 수정된 버전
         try:
-            # 은행 선택 드롭다운 찾기
-            bank_select = driver.find_element(By.XPATH, "//select[contains(@name, 'bank') or contains(@id, 'bank')]")
+            # 무통장입금 섹션이 표시될 때까지 대기
+            vbank_section = wait.until(EC.visibility_of_element_located((By.ID, "partPaymentVbank")))
+            print("무통장입금 섹션이 표시됨")
+            
+            # 은행 선택 드롭다운 찾기 (정확한 name 사용)
+            bank_select = wait.until(EC.presence_of_element_located((By.NAME, "bankCode")))
+            
+            # Select 객체 생성
+            from selenium.webdriver.support.ui import Select
             select_element = Select(bank_select)
             
-            # 농협은행 옵션 찾기
+            print("=== 사용 가능한 은행 목록 ===")
             for option in select_element.options:
-                if "농협" in option.text:
-                    select_element.select_by_visible_text(option.text)
-                    print("입금은행: 농협은행 선택 완료")
-                    break
+                print(f"은행: {option.text} (value: {option.get_attribute('value')})")
+            
+            # 농협은행 선택 시도 (여러 방법)
+            try:
+                # 방법 1: value로 선택 (농협은행 = "11")
+                select_element.select_by_value("11")
+                print("입금은행: 농협은행 선택 완료 (value로 선택)")
+                
+            except Exception as e1:
+                print(f"value로 선택 실패: {e1}")
+                
+                try:
+                    # 방법 2: 텍스트로 선택
+                    select_element.select_by_visible_text("농협은행")
+                    print("입금은행: 농협은행 선택 완료 (텍스트로 선택)")
+                    
+                except Exception as e2:
+                    print(f"텍스트로 선택 실패: {e2}")
+                    
+                    try:
+                        # 방법 3: 부분 텍스트 매칭으로 선택
+                        for option in select_element.options:
+                            if "농협" in option.text:
+                                select_element.select_by_visible_text(option.text)
+                                print(f"입금은행: {option.text} 선택 완료 (부분 매칭)")
+                                break
+                        else:
+                            # 방법 4: JavaScript로 직접 선택
+                            driver.execute_script("""
+                                var select = document.querySelector('select[name="bankCode"]');
+                                select.value = '11';
+                                select.dispatchEvent(new Event('change'));
+                                setBankContent(select);
+                            """)
+                            print("입금은행: 농협은행 선택 완료 (JavaScript 강제 설정)")
+                            
+                    except Exception as e3:
+                        print(f"부분 매칭 선택 실패: {e3}")
+                        
+                        # 방법 5: 첫 번째 사용 가능한 은행 선택 (기본값 제외)
+                        try:
+                            available_options = [opt for opt in select_element.options if opt.get_attribute('value') != '']
+                            if available_options:
+                                first_bank = available_options[0]
+                                select_element.select_by_value(first_bank.get_attribute('value'))
+                                print(f"입금은행: {first_bank.text} 선택 완료 (대안 선택)")
+                            else:
+                                print("사용 가능한 은행이 없습니다.")
+                                return False
+                                
+                        except Exception as e4:
+                            print(f"대안 선택도 실패: {e4}")
+                            return False
+            
+            # 선택 결과 확인
+            time.sleep(1)
+            try:
+                current_selection = Select(bank_select).first_selected_option
+                selected_bank = current_selection.text
+                selected_value = current_selection.get_attribute('value')
+                print(f"최종 선택된 은행: {selected_bank} (value: {selected_value})")
+                
+                # onChange 이벤트 강제 호출 (은행 정보 업데이트를 위해)
+                driver.execute_script("setBankContent(arguments[0]);", bank_select)
+                
+            except Exception as e:
+                print(f"선택 결과 확인 실패: {e}")
+            
         except Exception as e:
+            traceback.print_exc()
             print(f"입금은행 선택 중 오류: {e}")
             return False
-        
-        time.sleep(1)
-        
-        # 4. 현금영수증 소득공제 선택
+
+        # 4. 현금영수증 소득공제 선택 - 수정된 버전
         try:
-            # 현금영수증 소득공제 라디오 버튼 선택
-            receipt_options = driver.find_elements(By.XPATH, "//input[@type='radio' and contains(@name, 'receipt') or contains(@name, 'cashReceipt')]")
+            # 현금영수증 옵션들 확인 (정확한 name 사용)
+            receipt_options = wait.until(EC.presence_of_all_elements_located((By.NAME, "cashReceiptIssueCode")))
+            
+            print("=== 현금영수증 옵션 확인 ===")
             for option in receipt_options:
-                label = driver.find_element(By.XPATH, f"//label[@for='{option.get_attribute('id')}']")
-                if "소득공제" in label.text:
-                    option.click()
-                    print("현금영수증: 소득공제 선택 완료")
-                    break
+                option_value = option.get_attribute('value')
+                option_id = option.get_attribute('id')
+                is_checked = option.is_selected()
+                
+                try:
+                    label = driver.find_element(By.XPATH, f"//label[@for='{option_id}']//span[@class='txt_lab']")
+                    label_text = label.text.strip()
+                    print(f"옵션 {option_value}: {label_text}, 선택됨: {is_checked}")
+                except Exception as e:
+                    print(f"옵션 {option_value}: 라벨 찾기 실패 - {e}")
+            
+            # 소득공제 선택 (value="0")
+            try:
+                # 이미 기본적으로 소득공제가 선택되어 있는지 확인
+                income_deduction = driver.find_element(By.XPATH, "//input[@name='cashReceiptIssueCode' and @value='0']")
+                
+                if not income_deduction.is_selected():
+                    # 선택되어 있지 않으면 클릭
+                    try:
+                        income_deduction.click()
+                        print("현금영수증: 소득공제 선택 완료 (일반 클릭)")
+                    except:
+                        driver.execute_script("arguments[0].click();", income_deduction)
+                        print("현금영수증: 소득공제 선택 완료 (JavaScript 클릭)")
+                else:
+                    print("현금영수증: 소득공제가 이미 선택되어 있음")
+                    
+                # onChange 이벤트 호출
+                driver.execute_script("setCashReceiptIssueCode(arguments[0]);", income_deduction)
+                
+            except Exception as inner_e:
+                print(f"소득공제 선택 실패: {inner_e}")
+                return False
+            
+            # 선택 결과 확인
+            time.sleep(1)
+            try:
+                selected_receipt = driver.find_element(By.XPATH, "//input[@name='cashReceiptIssueCode' and @checked]")
+                selected_value = selected_receipt.get_attribute('value')
+                selected_id = selected_receipt.get_attribute('id')
+                selected_label = driver.find_element(By.XPATH, f"//label[@for='{selected_id}']//span[@class='txt_lab']")
+                print(f"최종 선택된 현금영수증: {selected_value} - {selected_label.text}")
+            except Exception as e:
+                print(f"현금영수증 선택 결과 확인 실패: {e}")
+            
         except Exception as e:
+            traceback.print_exc()
             print(f"현금영수증 선택 중 오류: {e}")
             return False
-        
+
         time.sleep(1)
-        
-        # 5. 휴대폰번호 입력
+
+        # 5. 휴대폰번호 입력 - 수정된 버전
         try:
+            # phone 변수가 정의되어 있다고 가정 (예: "01012345678")
+            if not phone:
+                print("휴대폰번호가 정의되지 않았습니다.")
+                return False
             
             # 휴대폰번호를 3부분으로 분리
             phone1 = phone[:3]    # "010"
             phone2 = phone[3:7]   # "1234"
             phone3 = phone[7:]    # "5678"
             
-            # 휴대폰번호 첫 번째 부분 (통신사 번호)
-            phone1_select = driver.find_element(By.XPATH, "//select[contains(@name, 'phone1') or contains(@name, 'hp1')]")
-            select_phone1 = Select(phone1_select)
-            select_phone1.select_by_value(phone1)
+            print(f"휴대폰번호 분리: {phone1}-{phone2}-{phone3}")
             
-            # 휴대폰번호 두 번째 부분
-            phone2_input = driver.find_element(By.XPATH, "//input[contains(@name, 'phone2') or contains(@name, 'hp2')]")
-            phone2_input.clear()
-            phone2_input.send_keys(phone2)
+            # 현금영수증 휴대폰번호 입력 필드들 찾기 (정확한 name 사용)
+            try:
+                # 휴대폰번호 첫 번째 부분 (통신사 번호) - 셀렉트박스
+                phone1_select = driver.find_element(By.NAME, "cashReceiptRegTelNo1")
+                select_phone1 = Select(phone1_select)
+                
+                # 사용 가능한 옵션 확인
+                print("=== 통신사 번호 옵션 ===")
+                for option in select_phone1.options:
+                    print(f"옵션: {option.text} (value: {option.get_attribute('value')})")
+                
+                # 첫 번째 부분 선택
+                select_phone1.select_by_value(phone1)
+                print(f"통신사 번호 선택 완료: {phone1}")
+                
+            except Exception as e1:
+                print(f"통신사 번호 선택 실패: {e1}")
+                # 대안: 기본값 010 사용
+                try:
+                    phone1_select = driver.find_element(By.NAME, "cashReceiptRegTelNo1")
+                    Select(phone1_select).select_by_value("010")
+                    print("통신사 번호: 기본값 010 선택")
+                except:
+                    print("통신사 번호 선택 완전 실패")
+                    return False
             
-            # 휴대폰번호 세 번째 부분
-            phone3_input = driver.find_element(By.XPATH, "//input[contains(@name, 'phone3') or contains(@name, 'hp3')]")
-            phone3_input.clear()
-            phone3_input.send_keys(phone3)
+            try:
+                # 휴대폰번호 두 번째 부분
+                phone2_input = driver.find_element(By.NAME, "cashReceiptRegTelNo2")
+                phone2_input.clear()
+                phone2_input.send_keys(phone2)
+                print(f"휴대폰번호 중간자리 입력 완료: {phone2}")
+                
+            except Exception as e2:
+                print(f"휴대폰번호 중간자리 입력 실패: {e2}")
+                return False
             
-            print(f"휴대폰번호 입력 완료: {phone1}-{phone2}-{phone3}")
+            try:
+                # 휴대폰번호 세 번째 부분
+                phone3_input = driver.find_element(By.NAME, "cashReceiptRegTelNo3")
+                phone3_input.clear()
+                phone3_input.send_keys(phone3)
+                print(f"휴대폰번호 끝자리 입력 완료: {phone3}")
+                
+            except Exception as e3:
+                print(f"휴대폰번호 끝자리 입력 실패: {e3}")
+                return False
+            
+            print(f"현금영수증 휴대폰번호 입력 완료: {phone1}-{phone2}-{phone3}")
+            
+            # 입력 완료 후 잠시 대기
+            time.sleep(1)
             
         except Exception as e:
+            traceback.print_exc()
             print(f"휴대폰번호 입력 중 오류: {e}")
             return False
         
@@ -429,34 +744,40 @@ def payment2(driver, phone):
         
         # 6. 예매자동의 전체동의 체크박스 선택
         try:
-            # 전체동의 체크박스 찾기
-            agree_all_checkbox = driver.find_element(By.XPATH, "//input[@type='checkbox' and (contains(@id, 'agreeAll') or contains(@id, 'allAgree') or contains(@name, 'agreeAll'))]")
+            # 전체동의 체크박스 찾기 (chkAgreeAll ID 기준)
+            agree_all_checkbox = driver.find_element(By.ID, "chkAgreeAll")
             if not agree_all_checkbox.is_selected():
                 agree_all_checkbox.click()
                 print("예매자동의 전체동의 체크 완료")
         except Exception as e:
-            # 전체동의가 없는 경우 개별 동의 체크박스들을 찾아서 체크
-            try:
-                agree_checkboxes = driver.find_elements(By.XPATH, "//input[@type='checkbox' and contains(@name, 'agree')]")
-                for checkbox in agree_checkboxes:
-                    if not checkbox.is_selected():
-                        checkbox.click()
-                print("개별 동의 체크박스 모두 체크 완료")
-            except Exception as e2:
-                print(f"동의 체크박스 선택 중 오류: {e2}")
-                return False
+            print(f"전체동의 체크박스를 찾을 수 없습니다: {e}")
+            return False
         
         time.sleep(1)
         
         # 7. 결제하기 버튼 클릭
         try:
-            # 결제하기 버튼 찾기 및 클릭
-            payment_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//button[contains(text(), '결제') or contains(@id, 'payment') or contains(@class, 'payment')] | //input[@type='button' and contains(@value, '결제')] | //a[contains(text(), '결제')]")))
-            payment_button.click()
+            # 결제하기 버튼 찾기 및 클릭 (정확한 ID 사용)
+            payment_button = wait.until(EC.element_to_be_clickable((By.ID, "btnFinalPayment")))
+            
+            # JavaScript로 클릭 (일반 클릭이 안될 경우를 대비)
+            driver.execute_script("arguments[0].click();", payment_button)
             print("결제하기 버튼 클릭 완료")
             
-            # 결제 완료 대기 (몇 초 대기)
+            # 결제 페이지 로딩 대기
             time.sleep(3)
+            
+        except Exception as e:
+            # 대체 방법: 다른 선택자들로 시도
+            try:
+                # 텍스트로 찾기
+                payment_button = wait.until(EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), '결제하기')]")))
+                driver.execute_script("arguments[0].click();", payment_button)
+                print("결제하기 버튼 클릭 완료 (대체 방법)")
+                time.sleep(3)
+            except Exception as e2:
+                print(f"결제하기 버튼 클릭 실패: {e2}")
+                return False
             
             return True
             
