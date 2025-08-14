@@ -55,7 +55,9 @@ def select_date(driver, config):
     print(f'date_list: {date_list}')
     for li in date_list:
         print(li.get_attribute('data-perfday'))
-        if config['bookInfo']['book_date'] == li.get_attribute('data-perfday'):
+        my_date = config['bookInfo']['book_date'].replace("-","")
+        print(my_date)
+        if my_date == li.get_attribute('data-perfday'):
             print('date click')
             try:
                 li.click()
@@ -72,8 +74,10 @@ def select_date(driver, config):
         for li in time_list:
             print(li.find_element(By.CSS_SELECTOR,'button > span').get_attribute('innerHTML').split(" "))
             times = li.find_element(By.CSS_SELECTOR,'button > span').get_attribute('innerHTML').split(" ")
+            my_time = config['bookInfo']['book_time'].replace(":","")
+            print(my_time)
             book_time = times[0][0:2] + times[1][0:2]
-            if config['bookInfo']['bookTime'] == book_time:
+            if my_time == book_time:
                 print("time ok")
                 li.click()
                 break
