@@ -509,28 +509,12 @@ class Macro():
                     except Exception as e:
                         self.emit_log(f"사운드 재생 오류: {e}", "warning")
 
-                    self.part = "payment1"
-                    
-                if self.stop == False and self.part == "payment1":
-                    self.emit_log("매수 선택 시작", "info")
-                    self.update_status()
-
-                    payment1_result = function.payment1(self.driver)
-                    if payment1_result:
-                        self.emit_log("매수 선택 완료", "success")
-                        self.part = "payment2"
-                    else:
-                        raise RuntimeError("매수 선택 오류 발생")
-
-                if self.stop == False and self.part == "payment2":
-                    self.emit_log("결제 시작!", "info")
-                    self.update_status()
-                    payment2_result = function.payment2(self.driver, self.__phone)
-                    if payment2_result:
-                        self.emit_log("결제 완료", "success")
                         # 완료 처리
                         self.emit_log('✅ 예매가 성공적으로 완료되었습니다!', "success")
                         self.emit_log('🔄 추가 예매를 원하시면 새로 시작해주세요.', "info")
+
+                        print("멈추자")
+                        input()
                         
                         # 완료 상태로 설정
                         self.booking_success = True
@@ -544,16 +528,55 @@ class Macro():
                             self.bridge.current_part = "completed"
                             self.bridge.emit_status()
                             self.bridge.emit_log("🎊 축하합니다! 예매가 완료되었습니다!", "success")
+
+                    # self.part = "payment1"
                     
-                        break  # 루프 탈출
-                    else:
-                        raise RuntimeError("결제2 오류 발생")
+                # if self.stop == False and self.part == "payment1":
+                #     self.emit_log("매수 선택 시작", "info")
+                #     self.update_status()
+
+                #     payment1_result = function.payment1(self.driver)
+                #     if payment1_result:
+                #         self.emit_log("매수 선택 완료", "success")
+                #         self.part = "payment2"
+                #     else:
+                #         raise RuntimeError("매수 선택 오류 발생")
+
+                # if self.stop == False and self.part == "payment2":
+                #     self.emit_log("결제 시작!", "info")
+                #     self.update_status()
+                #     payment2_result = function.payment2(self.driver, self.__phone)
+                #     if payment2_result:
+                #         self.emit_log("결제 완료", "success")
+                #         # 완료 처리
+                #         self.emit_log('✅ 예매가 성공적으로 완료되었습니다!', "success")
+                #         self.emit_log('🔄 추가 예매를 원하시면 새로 시작해주세요.', "info")
+                        
+                #         # 완료 상태로 설정
+                #         self.booking_success = True
+                #         self.stop = True
+                #         self.part = "completed"
+                #         self.update_status()
+                    
+                #         # UI 모드에서는 브리지 상태도 업데이트
+                #         if self.bridge:
+                #             self.bridge.is_paused = True
+                #             self.bridge.current_part = "completed"
+                #             self.bridge.emit_status()
+                #             self.bridge.emit_log("🎊 축하합니다! 예매가 완료되었습니다!", "success")
+                    
+                #         break  # 루프 탈출
+                #     else:
+                #         raise RuntimeError("결제2 오류 발생")
 
             except Exception as e:
                 error_msg = f'현재 단계: {self.part}\n오류 내용:\n{traceback.format_exc()}'
                 self.emit_log(error_msg, "error")
                 self.emit_log('❌ 오류가 발생했습니다. 일시정지됩니다.', "error")
                 self.stop = True
+
+                print("멈추자")
+                input()
                 
                 # UI 모드에서는 브리지 상태도 업데이트
                 if self.bridge:

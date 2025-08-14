@@ -216,8 +216,11 @@ class Macro():
                         self.jump_count_update()
                     elif res == CODE.AREA_ERROR:
                         self.__special_area = "N"
-
-                    self.driver.find_element(By.ID, 'btnReloadSchedule').click()
+                    
+                    button = WebDriverWait(self.driver, 10).until(
+                        EC.element_to_be_clickable((By.ID, "btnReloadSchedule"))
+                    )
+                    button.click()
                     self.wait.until(EC.presence_of_element_located((By.ID, "ez_canvas")))
 
                 if self.stop == False and self.part == "catch":
