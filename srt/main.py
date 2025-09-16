@@ -213,6 +213,11 @@ class SRTAutoBooking:
                     lambda driver: "selectLoginForm" not in driver.current_url
                 )
                 print("로그인 성공! 메인 페이지로 이동했습니다.")
+                
+                # 로그인 후 팝업 모두 닫기
+                time.sleep(2)  # 팝업이 뜰 시간 대기
+                self.close_all_popups()
+                
                 return True
             except TimeoutException:
                 # URL이 변경되지 않았다면 에러 메시지 확인
@@ -229,6 +234,119 @@ class SRTAutoBooking:
         except Exception as e:
             print(f"로그인 결과 확인 실패: {e}")
             return False
+        
+    def close_all_popups(self):
+        """모든 팝업창을 닫는 함수"""
+        try:
+            print("팝업 창 확인 및 닫기 시작...")
+            
+            # 1. Alert 창 처리
+            try:
+                alert = self.driver.switch_to.alert
+                alert_text = alert.text
+                print(f"Alert 창 감지: {alert_text}")
+                alert.accept()
+                print("Alert 창 닫기 완료")
+                time.sleep(0.5)
+            except:
+                pass
+            
+            # 2. 모든 팝업 윈도우 닫기
+            main_window = self.driver.current_window_handle
+            all_windows = self.driver.window_handles
+            
+            if len(all_windows) > 1:
+                print(f"{len(all_windows) - 1}개의 팝업 윈도우 발견")
+                for window in all_windows:
+                    if window != main_window:
+                        self.driver.switch_to.window(window)
+                        self.driver.close()
+                        print("팝업 윈도우 닫기 완료")
+                
+                self.driver.switch_to.window(main_window)
+            
+            # 3. 레이어 팝업 처리
+            popup_selectors = [
+                "div[id*='popup']",
+                "div[class*='popup']",
+                "div[class*='modal']",
+                "div[class*='layer']",
+                ".ui-dialog",
+                "div[id*='notice']",
+                "div[class*='notice']",
+                "div[id*='event']",
+                "div[class*='event']",
+                "div[id*='banner']",
+                "div[class*='banner']"
+            ]
+            
+            for selector in popup_selectors:
+                try:
+                    popups = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    for popup in popups:
+                        if popup.is_displayed():
+                            # 닫기 버튼 찾기
+                            close_buttons = []
+                            close_buttons.extend(popup.find_elements(By.CSS_SELECTOR, "button[class*='close']"))
+                            close_buttons.extend(popup.find_elements(By.CSS_SELECTOR, "a[class*='close']"))
+                            close_buttons.extend(popup.find_elements(By.CSS_SELECTOR, "button[onclick*='close']"))
+                            close_buttons.extend(popup.find_elements(By.CSS_SELECTOR, "a[onclick*='close']"))
+                            close_buttons.extend(popup.find_elements(By.XPATH, ".//button[contains(text(), '닫기')]"))
+                            close_buttons.extend(popup.find_elements(By.XPATH, ".//button[contains(text(), '확인')]"))
+                            close_buttons.extend(popup.find_elements(By.XPATH, ".//a[contains(text(), '닫기')]"))
+                            close_buttons.extend(popup.find_elements(By.XPATH, ".//a[contains(text(), '확인')]"))
+                            
+                            for btn in close_buttons:
+                                try:
+                                    if btn.is_displayed():
+                                        self.driver.execute_script("arguments[0].click();", btn)
+                                        print(f"팝업 닫기 버튼 클릭: {selector}")
+                                        time.sleep(0.5)
+                                        break
+                                except:
+                                    continue
+                            
+                            # 닫기 버튼이 없으면 팝업 자체를 숨김
+                            if not close_buttons:
+                                self.driver.execute_script("arguments[0].style.display = 'none';", popup)
+                                print(f"팝업 숨김 처리: {selector}")
+                                
+                except Exception:
+                    continue
+            
+            # 4. iframe 내부의 팝업 처리
+            try:
+                iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+                for iframe in iframes:
+                    if iframe.is_displayed():
+                        try:
+                            self.driver.switch_to.frame(iframe)
+                            
+                            # iframe 내부에서 닫기 버튼 찾기
+                            close_buttons = self.driver.find_elements(By.XPATH, "//button[contains(text(), '닫기') or contains(text(), '확인')]")
+                            for btn in close_buttons:
+                                if btn.is_displayed():
+                                    btn.click()
+                                    print("iframe 내 팝업 닫기")
+                                    break
+                            
+                            self.driver.switch_to.default_content()
+                        except:
+                            self.driver.switch_to.default_content()
+                            continue
+            except:
+                pass
+            
+            print("모든 팝업 처리 완료")
+            return True
+            
+        except Exception as e:
+            print(f"팝업 닫기 중 오류: {e}")
+            try:
+                self.driver.switch_to.default_content()
+            except:
+                pass
+            return False
     
     
     def navigate_to_booking_page(self):
@@ -238,6 +356,8 @@ class SRTAutoBooking:
             home_url = "https://etk.srail.kr/main.do"
             print(f"홈페이지로 이동 중: {home_url}")
             self.driver.get(home_url)
+
+            self.close_all_popups();
             
             # 여러 가능한 요소들로 페이지 로드 확인
             page_load_indicators = [
